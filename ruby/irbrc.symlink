@@ -1,0 +1,33 @@
+#! /usr/bin/env ruby
+
+module PJ
+  def enable_hirb
+    begin
+      require 'hirb'
+    rescue
+      Hirb.enable
+    end
+  end
+
+  def disable_hirb
+    Hirb.disable if defined? Hirb
+  end
+
+  def log_active_record
+    ActiveRecord::Base.logger = Logger.new(STDOUT)
+  end
+
+  def log_action_controller
+    ActionController::Base.logger = Logger.new(STDOUT)
+  end
+
+  def log_rails
+    Rails.logger = Logger.new(STDOUT)
+  end
+
+  def log_all_the_things
+    log_action_controller
+    log_active_record
+    log_rails
+  end
+end

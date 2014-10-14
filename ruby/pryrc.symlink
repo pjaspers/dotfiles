@@ -1,0 +1,4 @@
+#! /usr/bin/env ruby
+
+irbrc = File.join(ENV["HOME"], ".irbrc")
+load irbrc if File.exists? irbrc
