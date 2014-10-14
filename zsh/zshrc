@@ -1,0 +1,49 @@
+#!/bin/zsh
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+
+# Make $ZSH path available as a shortcut
+export ZSH=$HOME/.config/dotfiles
+
+bindkey -e # Emacs bindings
+
+[[ $TERM == "dumb" ]] && unsetopt zle && PS1='$ '
+
+export ANDROID_SDK_ROOT=/usr/local/Cellar/android-sdk/r18
+export PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11/bin:/usr/local/sbin:/AdobeAIRSDK/bin:/usr/local/share/npm/bin:/usr/local/texlive/2011basic/bin/universal-darwin/:/usr/local/Cellar/android-sdk/r18:/Users/pjaspers/dotfiles/bin:/opt/oracle/instantclient_10_2:/usr/local/share/python:/usr/local/heroku/bin
+
+# This sets up where the [pj.plugin.zsh](https://github.com/robbyrussell/oh-my-zsh/blob/96e4e5dd032d2df75f87d5b3e5594d527c655b16/plugins/pj/pj.plugin.zsh) so I can easily jump to a project.
+PROJECT_PATHS=(~/development/rails ~/development/js ~/development/objc ~/development/ruby)
+
+# Load [chruby](https://github.com/postmodern/chruby) and set default ruby
+# to 2.1.2
+source /usr/local/opt/chruby/share/chruby/chruby.sh
+source /usr/local/opt/chruby/share/chruby/auto.sh
+chruby ruby-2.1.2
+
+# Initializing autocomplete here, otherwise functions won't be loaded
+# also load compdef so git-completion doesn't complain about no compdef
+autoload -U compinit compdef
+compinit
+fpath=(/usr/local/share/zsh/site-functions/ $ZSH/functions $ZSH/completions $fpath)
+
+# Use localrc for tokens and ignored stuff
+if [[ -a ~/.localrc ]]
+then
+  source ~/.localrc
+fi
+
+config_files=($ZSH/zsh/*.zsh)
+
+# load everything but the path and completion files
+for file in ${${config_files}}
+do
+  source $file
+done
+
+# Use the [pure prompt](https://github.com/sindresorhus/pure)
+#
+# A pretty, minimal and fast ZSH prompt
+autoload -U promptinit && promptinit
+prompt pure
