@@ -18,7 +18,7 @@ bindkey '^Xe' edit-command-line
 alias eprof='$EDITOR $ZSH && reload!' # Edit and reload
 alias reload!='source ~/.zshrc'       # reload config files
 alias publickey='cat ~/.ssh/id_rsa.pub | pbcopy'
-
+alias rr=pj_change_ruby
 # From @inferis, easy nocorrect
 if [ -f ~/.zsh_nocorrect ]; then
     while read -r COMMAND; do
