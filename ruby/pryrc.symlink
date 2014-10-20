@@ -1,4 +1,14 @@
 #! /usr/bin/env ruby
+home = ENV["HOME"]
+config_folder = File.join(home, ".config", "pry")
 
-irbrc = File.join(ENV["HOME"], ".irbrc")
+irbrc = File.join(home, ".irbrc")
 load irbrc if File.exists? irbrc
+
+history_file = File.join(config_folder, "history")
+unless File.exists? history_file
+  require "fileutils"
+  puts "Creating `pry` folder in #{config_folder}"
+  FileUtils.mkdir_p config_folder
+end
+Pry.config.history.file = history_file
