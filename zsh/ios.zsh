@@ -1,7 +1,9 @@
 # Oh the Xcodes
-alias xcode4='sudo xcode-select -s /Applications/Xcode_4.6.3.app/Contents/Developer; echo "Using `xcode-select -p`"'
-alias xcode5='sudo xcode-select -s /Applications/Xcode.app/Contents/Developer; echo "Using `xcode-select -p`"'
-alias xcode6='sudo xcode-select -s /Applications/Xcode6-Beta3.app/Contents/Developer; echo "Using `xcode-select -p`"'
+alias which_xcode='echo "Using `xcode-select -p`"'
+alias xcode4='echo "Not installed"'
+alias xcode5='echo "Not installed"'
+alias xcode6b='sudo xcode-select -s /Applications/Xcode6-Beta3.app/Contents/Developer; which_xcode'
+alias xcode61='sudo xcode-select -s /Applications/Xcode6.1.app/Contents/Developer; which_xcode'
 
 # Returns a nicely formatted datestring instead of core data's weird datetype.
 function cddate() {
