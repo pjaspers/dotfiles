@@ -165,3 +165,9 @@ function pj_change_ruby() {
     unset color
     unset found_in
 }
+
+function pj_check_ssl() {
+    if (( $# < 1 ))
+   then echo "usage: pj_check_ssl <site>"; return 1; fi
+    echo | openssl s_client -connect $1:443 2>/dev/null | openssl x509 -text
+}
