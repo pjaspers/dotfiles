@@ -29,9 +29,9 @@ compinit
 fpath=(/usr/local/share/zsh/site-functions/ $ZSH/functions $ZSH/completions $fpath)
 
 # Use localrc for tokens and ignored stuff
-if [[ -a ~/.localrc ]]
+if [[ -a $ZSH/zsh/localrc ]]
 then
-  source ~/.localrc
+  source $ZSH/zsh/localrc
 fi
 
 config_files=($ZSH/zsh/*.zsh)
