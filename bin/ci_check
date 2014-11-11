@@ -1,0 +1,40 @@
+#! /usr/bin/env ruby
+#
+# Small script to check build status on Jenkins
+#
+# Usage:
+#
+#      ci_check <project_name>
+#
+# http://<jenkins-url>/api/json?tree=jobs[name,description,color]
+require "open-uri"
+require "json"
+
+begin;require 'term/ansicolor';rescue Object;end
+
+def _puts(text, success)
+  c = Term::ANSIColor rescue nil
+  if c
+    if success
+      print c.green, c.bold, text, c.clear, "\n"
+    else
+      print c.red, c.bold, text, c.clear, "\n"
+    end
+  else
+    puts text
+  end
+end
+project = ARGV[0]
+begin
+  color = JSON.parse(open("http://217.145.34.130:8080/jenkins/api/json?tree=jobs[name,description,color]").read)["jobs"].find{|s| s["description"] =~ /#{project}/i}["color"]
+  color = JSON.parse(open("http://marleen.local:8080/jenkins/api/json?tree=jobs[name,description,color]").read)["jobs"].find{|s| s["description"] =~ /#{project}/i}["color"]
+rescue
+  _puts "Could not find #{project}", false
+   abort
+end
+
+if color == "blue"
+  _puts "#{project} is doing fine", true
+else
+  _puts "#{project} is failing", false
+end

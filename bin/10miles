@@ -1,0 +1,25 @@
+#! /usr/bin/env ruby
+
+require "nokogiri"
+require "open-uri"
+
+# A small script to fetch someon's results from a chronorace.be race
+#
+#       10miles <name>
+def url(name)
+  "http://prod.chronorace.be/Classements/classement.aspx?eventId=243129508691975&redirect=0&mode=large&srch=#{name}"
+end
+
+# return an array of hashes with headers and results
+def fetch(name)
+  doc = Nokogiri::HTML(open(url(name)))
+  headers = [:pos, :nr, :name, :age, :ioc, :club, :result, :tkm, :average, :cat_place, :cat_name, :city]
+  table = doc.css("td.MainZone table:last")
+  rows = doc.css("tr.Odd")
+  rows += doc.css("tr.Even")
+  rows.inject([]) { |result, row|
+    result << Hash[headers.zip(row.css("td").map(&:text))]
+  }.sort_by{|el| el[:pos].gsub(".", "").to_i rescue el[:pos]}
+end
+
+puts fetch(ARGV[0])

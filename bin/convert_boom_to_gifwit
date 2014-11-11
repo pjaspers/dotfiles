@@ -1,0 +1,6 @@
+#! /usr/env/ruby
+
+require "json"
+
+gifs = JSON.parse(File.open(File.expand_path("~/.boom")).read)["list"].first["gifs"]
+File.open(File.expand_path("~/boom.gifwit"), "w+") {|f| f.write(gifs.collect{|g| {url: g.values.first, keywords: g.keys.first.split("_").join(" ")}}.to_json)}

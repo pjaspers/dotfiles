@@ -11,7 +11,7 @@ bindkey -e # Emacs bindings
 [[ $TERM == "dumb" ]] && unsetopt zle && PS1='$ '
 
 export ANDROID_SDK_ROOT=/usr/local/Cellar/android-sdk/r18
-export PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11/bin:/usr/local/sbin:/AdobeAIRSDK/bin:/usr/local/share/npm/bin:/usr/local/texlive/2011basic/bin/universal-darwin/:/usr/local/Cellar/android-sdk/r18:/Users/pjaspers/dotfiles/bin:/opt/oracle/instantclient_10_2:/usr/local/share/python:/usr/local/heroku/bin
+export PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11/bin:/usr/local/sbin:/AdobeAIRSDK/bin:/usr/local/share/npm/bin:/usr/local/texlive/2011basic/bin/universal-darwin/:/usr/local/Cellar/android-sdk/r18:/Users/pjaspers/dotfiles/bin:/opt/oracle/instantclient_10_2:/usr/local/share/python:/usr/local/heroku/bin:$ZSH/bin
 
 # This sets up where the [pj.plugin.zsh](https://github.com/robbyrussell/oh-my-zsh/blob/96e4e5dd032d2df75f87d5b3e5594d527c655b16/plugins/pj/pj.plugin.zsh) so I can easily jump to a project.
 PROJECT_PATHS=(~/development/rails ~/development/js ~/development/objc ~/development/ruby ~/development/shell)

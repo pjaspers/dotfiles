@@ -1,0 +1,17 @@
+#! /usr/bin/env ruby
+# -*- coding: utf-8 -*-
+#
+# Small script that lets hubot speak out
+
+require "yaml"
+require "capfire"
+
+unless ARGV[0]
+  abort "Hubot needs something to speak - <hspeak word>"
+end
+
+def speak(s)
+  Capfire.speak(s)
+end
+
+speak(ARGV[0])

@@ -1,0 +1,39 @@
+#! /usr/bin/env ruby
+# -*- coding: utf-8 -*-
+require "rss"
+
+# Go through The Bugle's (one of the universe’s leading satirical comedy podcasts) RSS
+# and sum the durations to get a quick check on how much time I've listened to them.
+# A lot.
+rss = RSS::Parser.parse('http://podcast.timesonline.co.uk/rss/thebuglemp3.rss', false)
+
+def duration_to_sec(duration)
+  hours, minutes, seconds = duration.split(":")
+  (hours.to_i * 60 * 60) + (minutes.to_i * 60) + seconds.to_i
+end
+
+def humanize secs
+  [[60, :seconds], [60, :minutes], [24, :hours], [1000, :days]].map{ |count, name|
+    if secs > 0
+      secs, n = secs.divmod(count)
+      "#{n.to_i} #{name}"
+    end
+  }.compact.reverse.join(' ')
+end
+
+old = rss.items.collect do |item|
+  [item.title, item.itunes_duration, duration_to_sec(item.itunes_duration.content)]
+end
+rss = RSS::Parser.parse('http://feeds.feedburner.com/thebuglefeed')
+
+new = rss.items.collect do |item|
+  [item.title, item.itunes_duration, duration_to_sec(item.itunes_duration.content)]
+end
+
+bugles = old + new
+total_seconds = bugles.inject(0) {|sum, x| sum + x.last}
+puts "You've listened to #{bugles.count} bugles"
+puts "Current listening time: #{humanize(total_seconds)}"
+
+# You've listened to 333 bugles
+# Current listening time: 8 days 1 hours 7 minutes 54 seconds
