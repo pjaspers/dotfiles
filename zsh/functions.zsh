@@ -166,6 +166,12 @@ function pj_change_ruby() {
     unset found_in
 }
 
+function pj_velo() {
+    url=https://www.velo-antwerpen.be/CallWebService/StationBussinesStatus.php
+    station_id=97
+    curl -sSd "idStation=$station_id&s_id_idioma=nl" $url | awk '{split($0,a," "); printf "Nog %s 🚲 beschikbaar", a[5]}'
+}
+
 function pj_check_ssl() {
     if (( $# < 1 ))
    then echo "usage: pj_check_ssl <site>"; return 1; fi
