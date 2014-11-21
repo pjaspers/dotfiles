@@ -172,6 +172,15 @@ function pj_velo() {
     curl -sSd "idStation=$station_id&s_id_idioma=nl" $url | awk '{split($0,a," "); printf "Nog %s 🚲 beschikbaar", a[5]}'
 }
 
+# Needs VELO_EMAIL to be set, will submit the form which will send a mail with the
+# current waiting list number. (Not really sure why it doesn't send back the actual
+# number)
+function pj_velo_waiting_list() {
+    velo_email=$VELO_EMAIL
+    curl -sS -X POST -d "CustEmail=$velo_email&form_id=checkposition_form" "https://www.velo-antwerpen.be/nl/registreren/wachtlijst-positie"
+    echo "An email will be arriving soon."
+}
+
 function pj_check_ssl() {
     if (( $# < 1 ))
    then echo "usage: pj_check_ssl <site>"; return 1; fi
