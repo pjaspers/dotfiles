@@ -71,7 +71,7 @@ function power {
 	END{printf("%.2f%%", b/a * 100)}'
 }
 
-function mx { ruby ~/bin/copy_maxgif.rb $argv}
+function mx { ruby $ZSH/bin/copy_maxgif.rb $argv}
 
 # Syntax-highlight JSON strings or files
 function json() {
