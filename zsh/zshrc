@@ -23,8 +23,8 @@ then
     source /usr/local/opt/chruby/share/chruby/chruby.sh
     source /usr/local/opt/chruby/share/chruby/auto.sh
 else
-    source /usr/local/share/chruby/share/chruby/chruby.sh
-    source /usr/local/share/chruby/share/chruby/auto.sh
+    source /usr/local/share/chruby/chruby.sh
+    source /usr/local/share/chruby/auto.sh
 fi
 chruby ruby-2.1.2
 
