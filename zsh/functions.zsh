@@ -186,3 +186,24 @@ function pj_check_ssl() {
    then echo "usage: pj_check_ssl <site>"; return 1; fi
     echo | openssl s_client -connect $1:443 2>/dev/null | openssl x509 -text
 }
+
+# Fetches the last 1000 tweets of a twitter username and scans them for gifs
+#       requirements: - t gem
+#
+# Returns path to file with gifs.
+function pj-fetch-twitter-gifs() {
+    if (( $# < 1 ))
+    then echo "usage: pj-fetch-twitter-gifs <username>"; return 1; fi
+    csv=/var/tmp/$1.csv
+    urls_file=/var/tmp/$1.only_urls
+    result=/var/tmp/$1.gifs
+    echo "Fetching tweets using the `t` gem"
+    t timeline $1 -d -n 1000 -c > $csv
+    echo "Extracting URLs -> $urls_file"
+    cat $csv | sed -ne 's/.*\(http[^"]*\).*/\1/p' | sed '/instagram/d' | sed -e 's/ .*$//' | sort -u | uniq -u > $urls_file
+    echo "Checking for gifs -> $result"
+    for i in $(cat $urls_file); do
+        curl -sSIL $i | grep 'image/gif' && echo $i >> $result
+    done
+    echo "Exported the gifs to: $result"
+}
