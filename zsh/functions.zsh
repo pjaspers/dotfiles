@@ -207,3 +207,10 @@ function pj-fetch-twitter-gifs() {
     done
     echo "Exported the gifs to: $result"
 }
+
+## Set a random background color for this shell
+function pj-random-color() {
+    color=$(random_css_color)
+    wasko -p $color
+    echo "O HAI $color:u"
+}
