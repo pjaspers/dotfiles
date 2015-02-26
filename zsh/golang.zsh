@@ -1,8 +1,9 @@
 if (( $+commands[go] )) ;
 then
-    # For godoc and go vet
-    export GOROOT=`go env GOROOT`
-    export PATH=$PATH:$GOROOT/bin
     # Development in go path
     export GOPATH=~/development/go
+    export PATH=$PATH:$GOROOT/bin
+
+    # Add local tools to bin
+    export PATH=$PATH:$GOPATH/bin
 fi
