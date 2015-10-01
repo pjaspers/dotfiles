@@ -188,7 +188,7 @@ function pj_check_ssl() {
 }
 
 # Fetches the last 1000 tweets of a twitter username and scans them for gifs
-#       requirements: - t gem
+#       requirements: - https://github.com/sferik/t
 #
 # Returns path to file with gifs.
 function pj-fetch-twitter-gifs() {
@@ -197,7 +197,7 @@ function pj-fetch-twitter-gifs() {
     csv=/var/tmp/$1.csv
     urls_file=/var/tmp/$1.only_urls
     result=/var/tmp/$1.gifs
-    echo "Fetching tweets using the `t` gem"
+    echo "Fetching tweets using the 't' gem"
     t timeline $1 -d -n 1000 -c > $csv
     echo "Extracting URLs -> $urls_file"
     cat $csv | sed -ne 's/.*\(http[^"]*\).*/\1/p' | sed '/instagram/d' | sed -e 's/ .*$//' | sort -u | uniq -u > $urls_file
