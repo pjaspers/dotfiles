@@ -249,3 +249,13 @@ function cattish() {
 EOT
     cat "$@"
 }
+
+# Fuck tco links
+#
+# Returns the actual URL (and a copy is placed in the clipboard)
+function ftco() {
+    if (( $# < 1 ))
+    then echo "usage: ftco <tco-link>"; return 1; fi
+
+    curl -sSI $1 | grep "location:" | awk '{print $2}' | tee >(pbcopy)
+}
