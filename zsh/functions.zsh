@@ -194,6 +194,7 @@ function pj_check_ssl() {
 function pj-fetch-twitter-gifs() {
     if (( $# < 1 ))
     then echo "usage: pj-fetch-twitter-gifs <username>"; return 1; fi
+    rm /var/tmp/$1.*
     csv=/var/tmp/$1.csv
     urls_file=/var/tmp/$1.only_urls
     result=/var/tmp/$1.gifs
