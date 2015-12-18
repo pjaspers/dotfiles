@@ -11,16 +11,21 @@ podcasts = [
   {name: "Kermode and Mayo's Film Review", rss: "http://downloads.bbc.co.uk/podcasts/fivelive/kermode/rss.xml"},
   {name: "Hypercritical", rss: "http://feeds.5by5.tv/hypercritical"},
   {name: "Bugle (old)", rss: "http://podcast.timesonline.co.uk/rss/thebuglemp3.rss"},
-  {name: "Bugle", rss: "http://feeds.feedburner.com/thebuglefeed"}
+  {name: "Bugle", rss: "http://feeds.feedburner.com/thebuglefeed"},
+  {name: "Incomparable", rss: "http://feeds.theincomparable.com/theincomparable"}
 ]
 total_listening_time = 0
 
 def duration_to_sec(duration)
   if duration.count(":") > 1
     hours, minutes, seconds = duration.split(":")
-  else
+  elsif duration.count(":") == 1
     hours = 0
     minutes, seconds = duration.split(":")
+  else
+    hours = 0
+    minutes = 0
+    seconds = duration
   end
 
   (hours.to_i * 60 * 60) + (minutes.to_i * 60) + seconds.to_i
@@ -39,6 +44,12 @@ podcasts.each do |podcast|
   puts "Fetching #{podcast[:name]}..."
   rss = RSS::Parser.parse(podcast[:rss], false)
   podcast[:shows] = rss.items.collect do |item|
+    duration = duration_to_sec(item.itunes_duration.content)
+    if duration > 5*60*60
+      puts "You've listened to a podcast that's over 5 hours long?"
+      puts "%s - %s (%s)" % [item.title, item.itunes_duration.content, humanize(duration)]
+      puts "Impressive"
+    end
     [item.title, item.itunes_duration, duration_to_sec(item.itunes_duration.content)]
   end
   podcast[:total_seconds] = podcast[:shows].inject(0) {|sum, x| sum + x.last}
@@ -58,12 +69,13 @@ puts "You've listened to a whopping #{humanize(total_listening_time)} of podcast
 # Fetching Hypercritical...
 # Fetching Bugle (old)...
 # Fetching Bugle...
+# Fetching Incomparable...
 # ATP
 #   You've listened to 100 shows
-#   Current listening time: 7 days 10 hours 37 minutes 37 seconds
+#   Current listening time: 7 days 20 hours 11 minutes 19 seconds
 # Kermode and Mayo's Film Review
-#   You've listened to 251 shows
-#   Current listening time: 15 days 16 hours 16 minutes 24 seconds
+#   You've listened to 284 shows
+#   Current listening time: 17 days 18 hours 22 minutes 58 seconds
 # Hypercritical
 #   You've listened to 100 shows
 #   Current listening time: 6 days 17 hours 7 minutes 0 seconds
@@ -71,7 +83,10 @@ puts "You've listened to a whopping #{humanize(total_listening_time)} of podcast
 #   You've listened to 214 shows
 #   Current listening time: 5 days 4 hours 1 minutes 14 seconds
 # Bugle
-#   You've listened to 153 shows
-#   Current listening time: 3 days 13 hours 58 minutes 8 seconds
+#   You've listened to 161 shows
+#   Current listening time: 3 days 17 hours 54 minutes 37 seconds
+# Incomparable
+#   You've listened to 280 shows
+#   Current listening time: 14 days 20 hours 49 minutes 5 seconds
 
-# You've listened to a whopping 38 days 14 hours 0 minutes 23 seconds of podcasts
+# You've listened to a whopping 56 days 2 hours 26 minutes 13 seconds of podcasts
