@@ -16,17 +16,12 @@ podcasts = [
 ]
 total_listening_time = 0
 
+# Takes a duration string and tries to return the number of seconds
+#       1:10:01 => 3600 + 600 + 1
+#       1:10 => 600 + 10
+#       123 => 123
 def duration_to_sec(duration)
-  if duration.count(":") > 1
-    hours, minutes, seconds = duration.split(":")
-  elsif duration.count(":") == 1
-    hours = 0
-    minutes, seconds = duration.split(":")
-  else
-    hours = 0
-    minutes = 0
-    seconds = duration
-  end
+  seconds, minutes, hours = duration.split(":").reverse
 
   (hours.to_i * 60 * 60) + (minutes.to_i * 60) + seconds.to_i
 end
