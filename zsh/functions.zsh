@@ -287,3 +287,11 @@ function ai() {
           if (( $times > 0)); then sleep .5; else break; fi
     done
 }
+
+# Takes current branch and tries to deploy it using capistrano
+function dp() {
+    if [[ $1 ]] && env=$1 || env="staging"
+    branch=$(git rev-parse --abbrev-ref HEAD)
+    echo "GATEWAY=1 BRANCH=$branch bundle exec cap $env deploy" | tee >(pbcopy)
+}
+
