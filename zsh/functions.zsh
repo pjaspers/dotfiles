@@ -295,3 +295,11 @@ function dp() {
     echo "GATEWAY=1 BRANCH=$branch bundle exec cap $env deploy" | tee >(pbcopy)
 }
 
+# Fetches the branch name of a Pull Request
+function pr() {
+    if (( $# < 2 ))
+    then echo "usage: pr <name/repo> <number>"; return 1; fi
+
+    curl -sSH "Authorization: token $GITHUB_API_TOKEN" "https://api.github.com/repos/$1/pulls/$2" | grep -m 1 label | awk -F ': ' '{ print $2 }' | sed -e 's/["|,]//g'
+}
+
