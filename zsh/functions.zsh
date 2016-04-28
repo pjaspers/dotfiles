@@ -303,3 +303,7 @@ function pr() {
     curl -sSH "Authorization: token $GITHUB_API_TOKEN" "https://api.github.com/repos/$1/pulls/$2" | grep -m 1 label | awk -F ': ' '{ print $2 }' | sed -e 's/["|,]//g'
 }
 
+# When on a wonky wifi, this will try to reclaim an IP-address
+function renew_dhcp() {
+    echo "add State:/Network/Interface/en0/RefreshConfiguration temporary" | sudo scutil
+}
