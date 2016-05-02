@@ -307,3 +307,9 @@ function pr() {
 function renew_dhcp() {
     echo "add State:/Network/Interface/en0/RefreshConfiguration temporary" | sudo scutil
 }
+
+# That awkward moment you want a simple function to the scores from the 2016 final between Ding and Selby.
+# Come on Ding!
+function snooker() {
+    curl -sS "http://livescores.worldsnookerdata.com/LiveScoring/Match/13868/444262/world-championship?pos=342" | nokogiri -e 'table = $_.at_css(".live-match-number").next();sa,sb = table.css("tr:last td").map(&:text);fa,fb = table.css("tr:first td").map(&:text);puts "%d [%d-%d] %d" % [sa.to_i, fa.to_i, fb.to_i, sb.to_i]'
+}
