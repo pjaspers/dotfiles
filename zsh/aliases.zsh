@@ -51,3 +51,7 @@ fi
 alias ql="qlmanage -p 2>/dev/null"
 alias airport="/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport"
 alias wa=pj-random-color
+
+if which pyenv > /dev/null; then eval "$(pyenv init -)"; fi
+
+export PYENV_ROOT=/usr/local/var/pyenv
