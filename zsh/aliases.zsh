@@ -59,4 +59,4 @@ export PYENV_ROOT=/usr/local/var/pyenv
 # Frasier's little brother - https://github.com/pjaspers/frasier
 #
 # Returns 4 random words separated by a '-', quick way to get a random identifier.
-alias niles='WEBSCALE=1; ruby -e "print File.open('"'/usr/share/dict/words'"').read.lines.reject{|w| w.length < 3 || 10 < w.length}.sample(4).map{|w| w.strip! && w.downcase}.join('"'-'"')"'
+alias niles='WEBSCALE=1; ruby -e "print File.open('"'/usr/share/dict/words'"').read.lines.reject{|w| w.length < 3 || 10 < w.length}.sample(4).map{|w| w.strip! && w.downcase}.join('"'-'"')" | tee >(pbcopy)'
