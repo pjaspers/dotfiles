@@ -40,7 +40,7 @@ def better_gif(url)
 end
 
 source = `curl -sL #{url} | grep "og:image"`
-gif = CGI.unescapeHTML(source.match(/content="(.+)(" property)/)[1])
+gif = CGI.unescapeHTML(source.match(/content="(.*?)"/)[1])
 
 # puts better_gif(gif.strip)
 system("printf '%s' '#{gif.strip}' | pbcopy")

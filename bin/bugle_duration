@@ -8,7 +8,13 @@ require "rss"
 rss = RSS::Parser.parse('http://podcast.timesonline.co.uk/rss/thebuglemp3.rss', false)
 
 def duration_to_sec(duration)
-  hours, minutes, seconds = duration.split(":")
+  if duration.count(":") > 1
+    hours, minutes, seconds = duration.split(":")
+  else
+    hours = 0
+    minutes, seconds = duration.split(":")
+  end
+
   (hours.to_i * 60 * 60) + (minutes.to_i * 60) + seconds.to_i
 end
 

@@ -2,7 +2,11 @@ function top50 {
   if (( $# < 1 ))
   then echo "Needs a number between 1 and 50"; return 1; fi
 
-  curl -sS https://gist.github.com/pjaspers/7706719/raw/2b042751d416c53aedf12603b7908bd1a2902fb8/gistfile1.md | grep "^$1\."
+  curl -LsS https://gist.github.com/pjaspers/7706719/raw/2b042751d416c53aedf12603b7908bd1a2902fb8/gistfile1.md | grep "^$1\."
+}
+
+function stats() {
+    fc -l 1 | awk '{CMD[$2]++;count++;}END { for (a in CMD)print CMD[a] " " CMD[a]/count*100 "% " a;}' | grep --color=auto -v "./" | column -c3 -s " " -t | sort -nr | nl | head -n20
 }
 
 # From [here](https://gist.github.com/lelandbatey/8677901)
@@ -125,6 +129,11 @@ function browse() {
 function gifcount() {
     COUNT=$(gifme | wc -l)
     echo "Current number of gifs: ${COUNT}"
+}
+
+function gifsize() {
+    files="${HOME}/Library/Containers/stevesmith.gifwit/Data/Library/Application Support/stevesmith.gifwitfiles"
+    du -sh "$files" | awk '{print $1}' | xargs printf "Barely %s of gifs"
 }
 
 # Usage: `gifme cats`
