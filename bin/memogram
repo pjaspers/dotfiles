@@ -1,0 +1,127 @@
+#! /usr/bin/env ruby
+
+require "net/http"
+require "uri"
+require "pry"
+require "json"
+require "yaml"
+
+# WARNING: This uses some very unofficial hackery to obtain the data
+#
+# It abuses the fact that Instagram is using React to build their pages and I
+# basically scrape out their data object, and save it to a YAML.
+#
+# So it's all off the record, on the QT and very hush-hush
+#
+# Also: Instagram is a bag of dicks. Their API will only allow you to fetch the 20 latest
+# images, unless you submit for a review process to get your app in a production state.
+
+pictures_to_fetch = ["https://www.instagram.com/p/BPAEcQIDiJP/?taken-by=junkiesxl"]
+
+if file = ENV["ALL_INSTAGRAMS"]
+  # How would one obtain a file with all the URLs of every Instagram picture you ever took?
+  #
+  # 1. Go to the instagram page where you can view your photos (instagram.com/junkiesxl)
+  # 2. Start scrolling and clicking "Load more"
+  # 3. Keep on scrolling until the end.
+  # 4. Open a console and do:
+  #      elements = document.querySelectorAll("._8mlbc._vbtk2._t5r8b")
+  #      var urls = Array.prototype.map.call(elements, function(el) { return el.href; })
+  #      JSON.stringify(urls)
+  # 5. Right click in the console row of `JSON.stringify` and choose "Save"
+  # 6. Open that file in your preferred editor and massage it into a instagram URL on each line
+  pictures_to_fetch = File.read(File.expand_path(file)).lines.map(&:strip)
+end
+
+module Instascraper
+  class Metadata
+    attr_accessor :raw, :url
+
+    def initialize(url, json)
+      @url = url
+      @raw = json["entry_data"]["PostPage"].first["media"]
+    end
+
+    def instagram_id
+      @raw["id"]
+    end
+
+    def caption
+      @raw["caption"]
+    end
+
+    def to_h
+      {
+        url: url,
+        instagram_id: instagram_id,
+        caption: caption,
+        raw: raw
+      }
+    end
+  end
+end
+
+def fetch_metadata(picture_url)
+  body = Net::HTTP.get(URI(picture_url))
+
+  # Instagram sets a window._sharedData object on the page which contains every
+  # bit of metadata we need.
+  #
+  # Get the line containing the data
+  shared_data_line = body.lines.grep(/window._sharedData/).first
+
+  # Remove everything before and including `window._sharedData = ` and remove the ending `</script>` tag
+  json = shared_data_line[(shared_data_line.index(" = ") + 3)..(shared_data_line.index("</script>") -2)]
+
+  # Parse the JSON to get it back into ruby-land
+  Instascraper::Metadata.new(picture_url, JSON.parse(json)).to_h
+end
+
+all_pictures = []
+pictures_to_fetch.each.with_index do |url, index|
+  print "Fetching #{index}/#{pictures_to_fetch.count}\r"
+  metadata = fetch_metadata(url)
+  all_pictures << metadata
+end
+
+File.open("all_instagrams.yml", 'w') { |f| YAML.dump(all_pictures, f) }
+
+# BIG DATA NUMBER CRUNCHING
+
+def fetch_for(name)
+  all = YAML.load_file("all_instagrams.yml")
+  regex = regex_for(name)
+  pictures = all.select {|h| h[:caption] =~ regex }
+  pictures.each do |picture|
+    caption = picture[:caption]
+    path = "#{name}/%s.png" % caption.downcase.scan(/\w+/).join("-")
+    url = picture[:raw]["display_src"]
+    `curl -o #{path} #{url}`
+  end
+end
+
+def fetch_franz
+  fetch_for("franz")
+end
+
+def fetch_bob
+  fetch_for("bob")
+end
+
+def regex_for(name)
+  if name == "franz"
+    /le franz/i
+  else
+    /dear diary/i
+  end
+end
+
+def stats_for(name)
+  regex = regex_for(name)
+  all = YAML.load_file("all_instagrams.yml").select {|h| h[:caption] =~ regex }
+  {
+    "Total #" => all.count,
+    "Average likes" => (all.map {|h| h[:raw]["likes"]["count"]}.inject(:+)).to_f/all.count,
+    "Most popular" => all.max_by {|h| h[:raw]["likes"]["count"]}[:url]
+  }
+end
