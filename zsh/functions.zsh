@@ -15,6 +15,12 @@ function whiteboard () {
     convert "$1" -morphology Convolve DoG:15,100,0 -negate -normalize -blur 0x1 -channel RBG -level 60%,91%,0.1 "$2"
 }
 
+# Using it to load my passphrase into the gpg agent so that others don't have to ask for it.
+# Because I absolutely, positively, dislike GPGTools
+function cryptonic() {
+  echo "Passphrase injected" | gpg --encrypt --armor -r "piet@pjaspers.com" | gpg -d --use-agent
+}
+
 function crypt() {
     echo "$1" | gpg --encrypt --armor -r "$2"
 }
