@@ -285,9 +285,12 @@ function ftco() {
 #
 # How to read this:
 #
-# If signal is > -70: your wifi is fine
-# If signal is > -85 and < -70, look at the Δ, the higher the better.
-# If signal is < -85, your wifi is the opposite of fine.
+# -10__________________-73________-100 (dBm)
+# Max                 Strong      Minimum
+#
+# -10 > signal > -73 => your wifi is fine
+# -73 > signal > -85 => look at the Δ, the higher the better.
+# -85 > signal       => your wifi is the opposite of fine.
 #
 # Called without arguments it will print it once, called with an argument it will keep polling.
 function ai() {
