@@ -300,7 +300,7 @@ function ai() {
     while true; do
           $airport_bin -I |
               grep -E "CtlRSSI|CtlNoise|lastTxRate" |
-              ruby -ne 'name, value = $_.split(": "); r ||= Hash.new(0); r[name.strip.gsub("agrCtl", "")] = value.strip; r["SNR"] = (r["RSSI"].to_f - r["Noise"].to_f); values = [r["RSSI"], r["Noise"], r["SNR"], r["lastTxRate"]]; print "\r%3d %3d %3d %3d" % values if r.keys.length == 4'
+	            ruby -ne 'def c(rssi, &block); rssi = rssi.to_f;bad, ok, meh = [31,32,33];mod = ok;mod = meh if rssi < -73;mod = bad if rssi < -85;result = block.call.to_s;print "\e[1;#{mod}m#{result}\e[0m";end; name, value = $_.split(": "); r ||= Hash.new(0); r[name.strip.gsub("agrCtl", "")] = value.strip; r["SNR"] = (r["RSSI"].to_f - r["Noise"].to_f); values = [r["RSSI"], r["Noise"], r["SNR"], r["lastTxRate"]]; c(r["RSSI"]) { "\r%3d %3d %3d %3d" % values } if r.keys.length == 4'
           ((times--))
           if (( $times > 0)); then sleep .5; else break; fi
     done
