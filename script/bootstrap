@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+cd "$(dirname "$0")/.."
+DOTFILES_ROOT=$(pwd -P)
+CONFIG_DIR=$HOME/.config
+
+set -e
+
+link_file() {
+    local src=$1 dest=$2
+
+    if [ -f "$dest" -o -d "$dest" ]
+    then
+	echo "    Removing $dest"
+	rm -rf "$dest"
+    fi
+    echo "    Linking $(basename $src) to $dest"
+    ln -s "$src" "$dest"
+}
+
+copy_file_if_not_exists() {
+    local src=$1 dest=$2
+    if [ -f "$dest" -o -d "$dest" ]
+    then
+	      echo "    Skipping ($dest already exists)"
+        return 0
+    fi
+    echo "    Copying $(basename $src) to $dest"
+    cp $src $dest
+}
+
+echo "  => Ensuring ~/.config/dotfiles in place"
+[[ -d $CONFIG_DIR ]] || mkdir $CONFIG_DIR
+link_file $DOTFILES_ROOT $CONFIG_DIR/dotfiles
+
+echo "  => Setting up zsh"
+link_file $DOTFILES_ROOT/zsh/zshrc $HOME/.zshrc
+
+echo "  => Setting up rubies"
+link_file $DOTFILES_ROOT/ruby/irbrc.symlink $HOME/.irbrc
+link_file $DOTFILES_ROOT/ruby/pryrc.symlink $HOME/.pryrc
+
+echo "  => Setting up git"
+link_file $DOTFILES_ROOT/git/gitconfig.symlink $HOME/.gitconfig
+copy_file_if_not_exists $DOTFILES_ROOT/git/gitconfig.local.symlink.example $HOME/.gitconfig.local
+
+echo "  => Installing ssh config"
+link_file $DOTFILES_ROOT/ssh/config.symlink $HOME/.ssh/config
