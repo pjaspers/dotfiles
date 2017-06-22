@@ -1,0 +1,23 @@
+* My dotfiles
+
+** Install
+
+#+BEGIN_SRC bash
+git clone https://github.com/pjaspers/dotfiles.git ~/somewhere/dotfiles
+cd ~/somewhere/dotfiles
+script/bootstrap
+#+END_SRC
+
+This will create symlinks to the files that need to be in the home directory. It's safe to run this script over and over again, it will delete the old ones and symlink in the new ones.
+
+** What's in them?
+
+- =bin= All kinds of scripts ranging from non-useful to almost useful
+- =git= Things related to git
+- =ruby= Mainly irbrc and pryrc settings
+- =script= Scripts to use with this repo
+- =zsh= My zsh setup (with some functions in them as well)
+
+** Should I be using this?
+
+No. You'll probably want your own, borrow/steal whatever you need, but since these are my dotfiles I'll probably break them or change them in a way that you won't like them anymore. But forge your own, it's fun!
