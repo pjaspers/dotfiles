@@ -44,4 +44,7 @@
 [push]
 	default = simple
 [tag]
-	gpgsign = true	
+	gpgsign = true
+[credential]
+  # Use macOS keychain to keep username and password
+	helper = osxkeychain
