@@ -1,0 +1,47 @@
+# Local/private config goes in the include
+[include]
+        path = ~/.gitconfig.local
+[user]
+	name = pjaspers
+	# Warn me if no email set
+	useConfigOnly = true
+[core]
+	excludesfile = /Users/pjaspers/.gitignore
+	editor = /usr/bin/vim
+	quotepath = false
+[alias]
+	# From http://blog.apiaxle.com/post/handy-git-tips-to-stop-you-getting-fired/
+	assume   = update-index --assume-unchanged
+	unassume = update-index --no-assume-unchanged
+	assumed  = "!git ls-files -v | grep ^h | cut -c 3-"
+
+	ours   = "!f() { git checkout --ours $@ && git add $@; }; f"
+	theirs = "!f() { git checkout --theirs $@ && git add $@; }; f"
+  lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
+  lag = log -p
+  clg = log --pretty=format:'- %s' --first-parent
+  unstage = reset HEAD
+
+  # shortcuts for commands
+  s = status
+  d = diff
+  # Better diffing
+  df = diff --color --color-words --abbrev
+  co = checkout
+  b = branch
+	praise = blame
+	# From https://hackernoon.com/lesser-known-git-commands-151a1918a60#.pu3nbopgp
+	please = push --force-with-lease
+	commend = commit --amend --no-edit
+	it = !git init && git commit -m “root” --allow-empty
+	stsh = stash --keep-index
+	staash = stash --include-untracked
+	staaash = stash --all
+[color]
+	ui = true
+[diff "localizablestrings"]
+	textconv = "iconv -f utf-16 -t utf-8"
+[push]
+	default = simple
+[tag]
+	gpgsign = true	
