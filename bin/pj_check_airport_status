@@ -1,0 +1,53 @@
+#! /usr/bin/env ruby
+# coding: utf-8
+#
+# Monitor the wifi
+#
+# tldr; Apple's wifi bars are a lie. http://openradar.appspot.com/radar?id=5032012842795008
+#
+# To better find out what's happening this prints out the signal strength (📶), the noise (📢)
+# the delta between signal and noise (Δ) and the throughput (📈)
+#
+# How to read this:
+#
+# -10__________________-73________-100 (dBm)
+# Max                 Strong      Minimum
+#
+# -10 > signal > -73 => your wifi is fine
+# -73 > signal > -85 => look at the Δ, the higher the better.
+# -85 > signal       => your wifi is the opposite of fine.
+#
+# Called without arguments it will print it once, called with an argument it will keep polling.
+require 'open3'
+
+airport_bin = "/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I"
+
+# gets(nil)
+def extract(string)
+  lines = string.split("\n").inject({}) do |result, line|
+    name, value = line.split(": ")
+    if value =~ /\A[-+]?[0-9]*\.?[0-9]+\Z/
+      value = value.to_f
+    end
+    result[name.strip.gsub("agrCtl", "")] = value
+    result
+  end
+  lines["SNR"] = (lines["RSSI"] - lines["Noise"])
+  lines
+end
+
+def c(rssi, &block);
+  rssi = rssi.to_f;
+  bad, ok, meh = [31,32,33];
+  mod = ok;
+  mod = meh if rssi < -73
+  mod = bad if rssi < -85
+  result = block.call.to_s
+  print "\e[1;#{mod}m#{result}\e[0m"
+end
+puts "%3s %3s %3s %3s" %  ["📶", "📢", "Δ", "📈"]
+Open3.popen3(airport_bin) do |stdin, stdout, stderr, wait_thr|
+  lines = extract(stdout.read)
+  values = [lines["RSSI"], lines["Noise"], lines["SNR"], lines["lastTxRate"]]
+  c(lines["RSSI"]) { "\r%3d %3d %3d %3d" % values }
+end

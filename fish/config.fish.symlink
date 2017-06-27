@@ -1,1 +1,3 @@
 alias fj=project_jump
+alias rr=pj_change_ruby
+alias ai=pj_check_airport_status
