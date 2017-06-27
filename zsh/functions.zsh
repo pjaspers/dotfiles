@@ -149,38 +149,6 @@ function gifme() {
     /usr/bin/sqlite3 $db $query | awk '{split($0,a,"|"); printf "\033[1;31m%-20s\033[0m: %s\n",a[2],a[1]}'
 }
 
-function pj_change_ruby() {
-    color=35
-    if ([ -f 'Gemfile' ] || [ -f '.ruby-version' ]);
-    then
-    else
-        echo "No Gemfile or .ruby-version found."
-        return 1;
-    fi
-
-    if [ -f 'Gemfile' ];
-    then
-        found_in='Gemfile'
-        current_ruby=`grep '^ruby' Gemfile | tr -cd '[[:digit:]].'`
-    fi
-    if ([ -f '.ruby-version' ]) && (! [ -n "$current_ruby" ]);
-    then
-        found_in='.ruby-version'
-        current_ruby=`grep '^ruby' '.ruby-version' | tr -cd '[[:digit:]].'`
-    fi
-    if [ -n "$current_ruby" ];
-    then
-        echo "Found a ruby in ${found_in}\n"
-        echo "      issueing: \033[5;${color}mchruby ${current_ruby}\033[0m"
-        chruby "$current_ruby"
-    else
-        echo "Couldn't find a ruby."
-    fi
-    unset current_ruby
-    unset color
-    unset found_in
-}
-
 function pj_velo() {
     url=https://www.velo-antwerpen.be/CallWebService/StationBussinesStatus.php
     station_id=97
