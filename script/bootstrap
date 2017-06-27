@@ -46,3 +46,8 @@ copy_file_if_not_exists $DOTFILES_ROOT/git/gitconfig.local.symlink.example $HOME
 
 echo "  => Installing ssh config"
 link_file $DOTFILES_ROOT/ssh/config.symlink $HOME/.ssh/config
+
+echo "  => Setting up fish"
+[[ -d $CONFIG_DIR/fish ]] || mkdir $CONFIG_DIR/fish
+link_file $DOTFILES_ROOT/fish/config.fish.symlink $CONFIG_DIR/fish/config.fish
+link_file $DOTFILES_ROOT/fish/functions $CONFIG_DIR/fish/functions
