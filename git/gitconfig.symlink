@@ -15,21 +15,17 @@
   unassume = update-index --no-assume-unchanged
   assumed  = "!git ls-files -v | grep ^h | cut -c 3-"
 
-  ours   = "!f() { git checkout --ours $@ && git add $@; }; f"
-  theirs = "!f() { git checkout --theirs $@ && git add $@; }; f"
+  # A prettier onelined log
   lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
-  lag = log -p
+  # An attempt at generating a sort of changelog
   clg = log --pretty=format:'- %s' --first-parent
-  unstage = reset HEAD
 
-  # shortcuts for commands
-  s = status
-  d = diff
   # Better diffing
   df = diff --color --color-words --abbrev
   co = checkout
   b = branch
   praise = blame
+
   # From https://hackernoon.com/lesser-known-git-commands-151a1918a60#.pu3nbopgp
   please = push --force-with-lease
   commend = commit --amend --no-edit
