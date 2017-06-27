@@ -2,7 +2,7 @@ function project_jump -a name --description 'Jumps to projects'
   set PROJECT_PATHS (ls -d -1 ~/development/*)
   for project in $PROJECT_PATHS
     if test -d $project/$name
-      cd $project/$argv
+      cd $project/$name
     end
   end
 end
