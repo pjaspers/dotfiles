@@ -20,6 +20,10 @@
 # Called without arguments it will print it once, called with an argument it will keep polling.
 require 'open3'
 
+# Silence control characters from appearing
+require 'io/console'
+# STDIN.echo = false
+
 airport_bin = "/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I"
 
 # gets(nil)
@@ -43,11 +47,93 @@ def c(rssi, &block);
   mod = meh if rssi < -73
   mod = bad if rssi < -85
   result = block.call.to_s
-  print "\e[1;#{mod}m#{result}\e[0m"
+  print "\e[1;#{mod}m#{result}\e[0m\r"
 end
+lines = {}
+Signal.trap("INT") do
+  puts "\nSo long!"
+  exit(1)
+end
+
+_height, width = `stty size`.scan(/\d+/).map(&:to_i)
+Signal.trap "SIGWINCH" do
+  _height, width = `stty size`.scan(/\d+/).map(&:to_i)
+  puts width
+end
+
+def print_info(width, data)
+  padding = 2
+  max_key = data.max_by {|k,_| k.length}.first.length
+  max_val = data.max_by {|_,v| v.to_s.length}.last.length
+  onewidth = padding + max_key + padding + max_val + padding
+  columns = width/onewidth
+  columns = 1 if columns < 1
+  extra_padding = (width % onewidth)/columns - 2*padding
+
+  data.each_slice(columns) do |a|
+    values = a.inject([]) do |result, (k,v)|
+      s = "%s\e[1m%s\e[0m %s %s%s" % [" " * padding, k.ljust(max_key), " " * padding, v.to_s.ljust(max_val), " " * padding]
+      result << s
+      result
+    end
+    puts values.join(" " * (padding+extra_padding))
+  end
+end
+
+Signal.trap("INFO") do
+  print_info(width, lines)
+end
+
+# Turns out braille is made out of 8 dots, you can toggle each dot to be marked
+# as 'on' by adding its hex value (as shown below) to unicode code point 2800.
+#
+#  1   8
+#  2  10
+#  4  20
+# 40  80
+#
+# So if you want the right bottom corner it would be:
+#
+#       0x2800 + 0x20+0x80+0x40
+#       (0x2800+0x20+0x80+0x40).to_s(16) => "28e0" # Make it a hex string
+#       "\u28e0" => "⣠"
+#
+# Or if you just want the unicode character:
+#
+#      [0x2800+0x20+0x80+0x40].pack("U") => "⣠"
+#
+# Thanks Wikipedia! https://en.wikipedia.org/wiki/Braille_Patterns#Symbols.2C_not_letters
+crossed = [0x40,0x40+0x4,0x4+0x20,0x20+0x10,0x10+0x2,0x2+0x1,0x1+0x8,0x8+0x10,0x10+0x2,0x2+0x4,0x4+0x20,0x20+0x80,0x80+0x40]
+around = [0x20+0x80+0x40,
+0x80+0x40+0x4,
+0x40+0x4+0x2,
+0x4+0x2+0x1,
+0x2+0x1+0x8,
+0x1+0x8+0x10,
+0x8+0x10+0x20,
+0x10+0x20+0x80]
 puts "%3s %3s %3s %3s" %  ["📶", "📢", "Δ", "📈"]
-Open3.popen3(airport_bin) do |stdin, stdout, stderr, wait_thr|
-  lines = extract(stdout.read)
-  values = [lines["RSSI"], lines["Noise"], lines["SNR"], lines["lastTxRate"]]
-  c(lines["RSSI"]) { "\r%3d %3d %3d %3d" % values }
+get_dot = -> {
+  dots = around.map do |hex|
+    [0x2800 + hex].pack("U")
+  end
+
+  index = 0
+  -> {
+    le_dot = dots[index]
+    index += 1
+    index = 0 if index >= dots.length
+    le_dot
+  }
+}
+dotter = get_dot.call
+
+while true do
+  Open3.popen3(airport_bin) do |stdin, stdout, stderr, wait_thr|
+    lines = extract(stdout.read)
+    values = [lines["RSSI"], lines["Noise"], lines["SNR"], lines["lastTxRate"]]
+    c(lines["RSSI"]) { "%3d %3d %3d %3d #{dotter.call}" % values }
+    $stdout.flush
+    sleep 1
+  end
 end
