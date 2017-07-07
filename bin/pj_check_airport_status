@@ -112,7 +112,7 @@ around = [0x20+0x80+0x40,
 0x1+0x8+0x10,
 0x8+0x10+0x20,
 0x10+0x20+0x80]
-puts "%3s %3s %3s %3s" %  ["📶", "📢", "Δ", "📈"]
+# puts "%3s %3s %3s %3s" %  ["📶 ", "📢 ", "Δ ", "📈 "]
 get_dot = -> {
   dots = around.map do |hex|
     [0x2800 + hex].pack("U")
@@ -132,7 +132,7 @@ while true do
   Open3.popen3(airport_bin) do |stdin, stdout, stderr, wait_thr|
     lines = extract(stdout.read)
     values = [lines["RSSI"], lines["Noise"], lines["SNR"], lines["lastTxRate"]]
-    c(lines["RSSI"]) { "%3d %3d %3d %3d #{dotter.call}" % values }
+    c(lines["RSSI"]) { "📶 %3d 📢 %3d 𝚫 %3d 📈 %3d #{dotter.call}" % values }
     $stdout.flush
     sleep 1
   end
