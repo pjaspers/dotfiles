@@ -1,4 +1,11 @@
 #! /usr/bin/env zsh
+function _change_ruby() {
+    # TODO: Only load if not already sourced
+    source /usr/local/share/chruby/chruby.sh
+    echo "      issueing: \033[5;${color}mchruby ${current_ruby}\033[0m"
+    chruby $1
+}
+
 color=35
 if ([ -f 'Gemfile' ] || [ -f '.ruby-version' ]);
 then
@@ -20,8 +27,7 @@ fi
 if [ -n "$current_ruby" ];
 then
     echo "Found a ruby in ${found_in}\n"
-    echo "      issueing: \033[5;${color}mchruby ${current_ruby}\033[0m"
-    chruby "$current_ruby"
+    _change_ruby "$current_ruby"
 else
     echo "Couldn't find a ruby."
 fi
