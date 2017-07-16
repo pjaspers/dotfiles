@@ -40,6 +40,11 @@ echo "  => Setting up rubies"
 link_file $DOTFILES_ROOT/ruby/irbrc.symlink $HOME/.irbrc
 link_file $DOTFILES_ROOT/ruby/pryrc.symlink $HOME/.pryrc
 
+echo "  => Setting up a better postgres prompt"
+# From here: https://www.citusdata.com/blog/2017/07/16/customizing-my-postgres-shell-using-psqlrc/
+link_file $DOTFILES_ROOT/ruby/psqlrc.symlink $HOME/.psqlrc
+[[ -d $CONFIG_DIR/psql ]] || mkdir $CONFIG_DIR/psql
+
 echo "  => Setting up git"
 link_file $DOTFILES_ROOT/git/gitconfig.symlink $HOME/.gitconfig
 copy_file_if_not_exists $DOTFILES_ROOT/git/gitconfig.local.symlink.example $HOME/.gitconfig.local
