@@ -269,3 +269,20 @@ function renew_dhcp() {
 function snooker() {
     curl -sS "http://livescores.worldsnookerdata.com/LiveScoring/Match/13868/444262/world-championship?pos=342" | nokogiri -e 'table = $_.at_css(".live-match-number").next();sa,sb = table.css("tr:last td").map(&:text);fa,fb = table.css("tr:first td").map(&:text);puts "%d [%d-%d] %d" % [sa.to_i, fa.to_i, fb.to_i, sb.to_i]'
 }
+
+# That awkward moment you come across a small JS include on a news site
+# and you think you might need it someday so you keep it in a stupid
+# litte function. Because then one day, you'll be able to say:
+#
+#           You want to know the total amount of congestion on Belgian's
+#           road system, this very minute?
+#
+#           Stand back. I have a function for this.
+function btraffic() {
+    local url='https://services.vrt.be/traffic/teaser?accept=application%2Fvnd.traffic.vrt.be.traffic_jam_length_1.0%2Bjson'
+    curl -sS $url |
+        jq '.trafficJamLength' |
+        xargs echo "0.001*" |
+        bc |
+        xargs echo "Aantal km file:"
+}
