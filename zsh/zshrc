@@ -4,6 +4,7 @@ export LC_ALL=en_US.UTF-8
 export LANG=en_US.UTF-8
 
 # Make $ZSH path available as a shortcut
+export CONFIG_DIR=$HOME/.config
 export ZSH=$HOME/.config/dotfiles
 
 bindkey -e # Emacs bindings

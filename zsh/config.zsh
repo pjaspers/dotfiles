@@ -1,6 +1,6 @@
 export WORDCHARS=${WORDCHARS:s,/,,} # Stop deleting on slashes or spaces
 
-HISTFILE=$HOME/.zsh_history
+HISTFILE=$CONFIG_DIR/zsh/zsh_history
 HISTSIZE=10000
 SAVEHIST=10000
 
