@@ -9,7 +9,7 @@
 
 \x auto
 \set VERBOSITY verbose
-\set HISTFILE ~/.config/psql/history- :HOST - :DBNAME
+\set HISTFILE ~/.config/psql/history- :DBNAME
 \set HISTSIZE 2000
 \set HISTCONTROL ignoredups
 \set COMP_KEYWORD_CASE upper
