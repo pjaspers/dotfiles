@@ -24,7 +24,15 @@ require 'open3'
 require 'io/console'
 # STDIN.echo = false
 
+VERSION="0.1.1"
+VERSION_NAME="Dr. No"
+
 airport_bin = "/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I"
+
+if ARGV[0] == "-v" or ARGV[0] == "--version"
+  puts "#{VERSION} (#{VERSION_NAME})"
+  exit
+end
 
 # gets(nil)
 def extract(string)
