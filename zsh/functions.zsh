@@ -342,3 +342,18 @@ function pwcheck() {
     curl -sS https://api.pwnedpasswords.com/range/$head | grep "$tail"
 }
 
+# On Slack's free plan, you sometimes want to kill your own darlings/files. This helps doing
+# that. For a Python version go ask @teufen.
+function slackfilesbegone() {
+    for page in {0..50}; do
+        echo "Fetchez le page numero \033[33;5m$page\033[0m"
+        curl -sS "https://slack.com/api/files.list?token=$SLACK_TOKEN&page=$page" |
+            jq '.files[].id' |
+            while read FILE_ID; do
+                echo -n "  Deleting \033[0;36m${FILE_ID//\"}\033[0m\n";
+                res=$(curl -sSX POST "https://slack.com/api/files.delete?token=$SLACK_TOKEN&file=${FILE_ID//\"}")
+                echo "  =~> $res"
+            done
+    done
+}
+
