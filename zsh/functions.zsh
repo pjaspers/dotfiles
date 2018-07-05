@@ -333,3 +333,12 @@ function cert_info() {
     echo | openssl s_client -showcerts -servername $1 -connect $1:443 2>/dev/null | openssl x509 -inform pem -noout -text
 }
 
+function pwcheck() {
+    # https://www.troyhunt.com/ive-just-launched-pwned-passwords-version-2/
+    echo -n "Password: "
+    read -s password
+    local head=$(echo -n $password | shasum | cut -b 1-5)
+    local tail=$(echo -n $password | shasum | cut -b 6-40 | tr /a-f/ /A-F/)
+    curl -sS https://api.pwnedpasswords.com/range/$head | grep "$tail"
+}
+
