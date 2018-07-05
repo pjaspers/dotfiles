@@ -26,6 +26,7 @@ require 'io/console'
 
 VERSION="0.1.1"
 VERSION_NAME="Dr. No"
+# https://en.wikipedia.org/wiki/List_of_James_Bond_films
 
 airport_bin = "/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I"
 
