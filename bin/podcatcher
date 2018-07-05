@@ -34,11 +34,15 @@ def humanize secs
     end
   }.compact.reverse.join(' ')
 end
-
+require "pry"
 podcasts.each do |podcast|
   puts "Fetching #{podcast[:name]}..."
   rss = RSS::Parser.parse(podcast[:rss], false)
   podcast[:shows] = rss.items.collect do |item|
+    unless item.itunes_duration
+      puts "#{item.dc_creator} did not set itunes duration for #{item.title}"
+      next
+    end
     duration = duration_to_sec(item.itunes_duration.content)
     if duration > 5*60*60
       puts "You've listened to a podcast that's over 5 hours long?"
@@ -46,7 +50,7 @@ podcasts.each do |podcast|
       puts "Impressive"
     end
     [item.title, item.itunes_duration, duration_to_sec(item.itunes_duration.content)]
-  end
+  end.compact
   podcast[:total_seconds] = podcast[:shows].inject(0) {|sum, x| sum + x.last}
   total_listening_time += podcast[:total_seconds]
 end
