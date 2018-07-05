@@ -34,33 +34,87 @@ if file = ENV["ALL_INSTAGRAMS"]
 end
 
 module Instascraper
-  class Metadata
+  class Graphdata
     attr_accessor :raw, :url
 
-    def initialize(url, json)
-      @url = url
-      @raw = json["entry_data"]["PostPage"].first["media"]
+    def self.with_url(url, json)
+      thing = new(json["entry_data"]["PostPage"].first["graphql"]["shortcode_media"])
+      thing.url = url
+      thing
+    end
+
+    def self.all_from_yaml(yaml)
+      r = yaml.map do |data|
+        new(data[:raw])
+      end
+      def r.franzies
+        select { |f| f.caption =~ /le franz/i}
+      end
+      def r.bobs
+        select { |f| f.caption =~ /dear diary/i}
+      end
+      r
+    end
+
+    def initialize(raw)
+      @raw = raw
     end
 
     def instagram_id
       @raw["id"]
     end
 
+    def shortcode
+      @raw["shortcode"]
+    end
+
     def caption
-      @raw["caption"]
+      @raw["edge_media_to_caption"]["edges"].first["node"]["text"]
+    end
+
+    def likes
+      @raw["edge_media_preview_like"]["count"]
+    end
+
+    def picture_url
+      @raw["display_url"]
+    end
+
+    def inspect
+      "<#{shortcode}> #{caption} (#{likes})"
     end
 
     def to_h
-      {
-        url: url,
+      r = {
         instagram_id: instagram_id,
         caption: caption,
+        shortcode: shortcode,
+        likes: likes,
+        picture_url: picture_url,
         raw: raw
       }
+      r.merge!(url: url) if url
+      r
     end
   end
 end
 
+def load_json_blob
+  # Wait what. Where did you get the files from?
+  #
+  # Opened the instagram page, opened an inspector and Network tab, scrolled all
+  # the way down, then right clicked and saved as file each "query"-call. Comme
+  # un animal.
+  parts = []
+  Dir.glob("*").each do |p|
+    next if p == "all_instagrams.yml"
+    parts << File.open(p).read
+  end
+  "[#{parts.join(",")}]"
+end
+
+# Take a instagram, any instagram URL, and transform it into a a graphdata url
+# So you'll get all the metadata.
 def fetch_metadata(picture_url)
   body = Net::HTTP.get(URI(picture_url))
 
@@ -74,8 +128,19 @@ def fetch_metadata(picture_url)
   json = shared_data_line[(shared_data_line.index(" = ") + 3)..(shared_data_line.index("</script>") -2)]
 
   # Parse the JSON to get it back into ruby-land
-  Instascraper::Metadata.new(picture_url, JSON.parse(json)).to_h
+  Instascraper::Graphdata.with_url(picture_url, JSON.parse(json))
 end
+
+all_pictures = JSON.parse(load_json_blob).map do |node|
+  begin
+    node["data"]["user"]["edge_owner_to_timeline_media"]["edges"].map do |inner_node|
+      # inner_node["node"]["shortcode"]
+      # inner_node["node"]["edge_media_to_caption"]["edges"].first["node"]["text"]
+      Instascraper::Graphdata.new(inner_node["node"]).to_h
+    end
+  rescue
+  end
+end.flatten.compact
 
 all_pictures = []
 pictures_to_fetch.each.with_index do |url, index|
@@ -92,10 +157,11 @@ def fetch_for(name)
   all = YAML.load_file("all_instagrams.yml")
   regex = regex_for(name)
   pictures = all.select {|h| h[:caption] =~ regex }
+  Dir.mkdir(name) unless File.exists?(name)
   pictures.each do |picture|
     caption = picture[:caption]
-    path = "#{name}/%s.png" % caption.downcase.scan(/\w+/).join("-")
-    url = picture[:raw]["display_src"]
+    path = "#{name}/%s.png" % caption.downcase.scan(/\w+/).join("-")[0..100]
+    url = picture[:picture_url]
     `curl -o #{path} #{url}`
   end
 end
@@ -121,7 +187,11 @@ def stats_for(name)
   all = YAML.load_file("all_instagrams.yml").select {|h| h[:caption] =~ regex }
   {
     "Total #" => all.count,
-    "Average likes" => (all.map {|h| h[:raw]["likes"]["count"]}.inject(:+)).to_f/all.count,
-    "Most popular" => all.max_by {|h| h[:raw]["likes"]["count"]}[:url]
+    "Average likes" => (all.map {|h| h[:likes]}.inject(:+)).to_f/all.count,
+    "Most popular" => all.max_by {|h| h[:likes]}[:shortcode]
   }
 end
+# results = Instascraper::Graphdata.all_from_yaml(YAML.load_file("all_instagrams.yml"))
+# franzies = results.franzies
+# bobs = results.bobs
+# r = franzis.map{|f| caption = f.caption.match(/as (?:an? )?([^\.]+)/)[0]; [caption, f.likes, f.picture_url] }.sort {|a,b| a[1] <=> b[1]}.reverse
