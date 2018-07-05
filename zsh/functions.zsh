@@ -303,3 +303,26 @@ function btraffic() {
         bc |
         xargs echo "Aantal km file:"
 }
+
+function random_line() {
+    if (( $# < 1 ))
+    then echo "usage: random_line path/to/file"; return 1; fi
+
+   head -$((${RANDOM} % `wc -l < $1` + 1)) $1 | tail -1
+}
+
+function random_me() {
+    ls "~/.config/randoms"
+}
+
+function phantom_me() {
+    random_line ~/.config/randoms/phantom_menace
+}
+
+function trooper_me() {
+    random_line ~/.config/randoms/starship_trooper
+}
+
+function crypto_me() {
+    random_line ~/.config/randoms/crypto_name
+}
