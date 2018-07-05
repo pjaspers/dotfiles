@@ -162,6 +162,10 @@ function gifme() {
     /usr/bin/sqlite3 $db $query | awk '{split($0,a,"|"); printf "\033[1;31m%-20s\033[0m: %s\n",a[2],a[1]}'
 }
 
+# Takes a regex and show all words that match it
+function wordme() {
+  grep --colour -E "$1" /usr/share/dict/words
+}
 function pj_velo() {
     url=https://www.velo-antwerpen.be/CallWebService/StationBussinesStatus.php
     station_id=97
