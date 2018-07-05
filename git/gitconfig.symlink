@@ -37,7 +37,7 @@
   # Get all merged branches that are not the current branch and not master
   filth = "!git branch --merged | grep -v '*' | grep -v master"
   # Remove all merged branches
-  cleanse = "!git filth | xargs -n 1 git branch -d"
+  exterminate = "!git filth | xargs -n 1 git branch -d"
 [color]
   ui = true
 [push]
