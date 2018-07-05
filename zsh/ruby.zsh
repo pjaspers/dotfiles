@@ -21,3 +21,5 @@ function papertrail() {
 # tail log
 alias tailtest='tail -f log/test.log'
 alias devlog='tail -f log/development.log'
+
+alias rbcop="git status --porcelain | cut -c4- | grep '\.rb' | xargs rubocop"
