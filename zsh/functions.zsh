@@ -81,6 +81,19 @@ function power {
 	END{printf("%.2f%%", b/a * 100)}'
 }
 
+function powerrr {
+    local all_bluetooth=$(defaults read /Library/Preferences/com.apple.Bluetooth)
+    local case=$(grep BatteryPercentCase <<< $all_bluetooth | awk -F "=" '{ gsub(";", ""); print $2}')
+    local left=$(grep BatteryPercentLeft <<< $all_bluetooth | awk -F "=" '{print $2}')
+    local right=$(grep BatteryPercentRight <<< $all_bluetooth | awk -F "=" '{print $2}')
+    local battery=$(pmset -g batt | grep InternalBattery | awk '{printf "%s [%s %s]", $3,$5, $6}')
+    echo "🔋 $battery"
+    echo $case
+    if [ ! -z "$case" ] && [ ! "$case" -eq "0" ]; then
+       echo "🎧 L: $left R: $right Case: $case"
+    else
+    fi
+}
 function mx { ruby $ZSH/bin/copy_maxgif.rb $argv}
 
 # Syntax-highlight JSON strings or files
