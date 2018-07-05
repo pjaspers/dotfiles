@@ -326,3 +326,10 @@ function trooper_me() {
 function crypto_me() {
     random_line ~/.config/randoms/crypto_name
 }
+function cert_info() {
+    if (( $# < 1 ))
+    then echo "usage: cert_info server.tld"; return 1; fi
+
+    echo | openssl s_client -showcerts -servername $1 -connect $1:443 2>/dev/null | openssl x509 -inform pem -noout -text
+}
+
