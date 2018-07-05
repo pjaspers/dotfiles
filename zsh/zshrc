@@ -29,6 +29,8 @@ else
 fi
 chruby ruby-2.4.0
 
+export PATH="$HOME/.cargo/bin:$PATH"
+
 # Initializing autocomplete here, otherwise functions won't be loaded
 # also load compdef so git-completion doesn't complain about no compdef
 autoload -U compinit compdef
