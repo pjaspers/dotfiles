@@ -357,3 +357,10 @@ function slackfilesbegone() {
     done
 }
 
+
+# Generate a Simpsons-ladida, thanks to the incomparable @lewisfidlers
+function ladida () {
+    url="https://bd8wz9ifl5.execute-api.eu-west-3.amazonaws.com/Production/%7Bladida+%7D"
+    curl -G -s --data-urlencode "text=$*" $url | pbcopy
+}
+
