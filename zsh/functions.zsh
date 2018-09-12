@@ -364,3 +364,8 @@ function ladida () {
     curl -G -s --data-urlencode "text=$*" $url | pbcopy
 }
 
+# Get a man page as a PDF in Preview.app
+# Borrowed from oh-my-zsh, and seen [here](https://twitter.com/emilyst/status/1039540902773972997)
+function man-preview() {
+    man -t "$@" | open -f -a Preview
+}
