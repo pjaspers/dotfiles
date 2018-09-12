@@ -311,8 +311,8 @@ function random_line() {
    head -$((${RANDOM} % `wc -l < $1` + 1)) $1 | tail -1
 }
 
-function random_me() {
-    ls "~/.config/randoms"
+function wat() {
+    random_line "${HOME}/.config/randoms/${1}"
 }
 
 function phantom_me() {
@@ -324,7 +324,7 @@ function trooper_me() {
 }
 
 function crypto_me() {
-    random_line ~/.config/randoms/crypto_name
+    random_line ~/.config/randoms/crypto_names
 }
 function cert_info() {
     if (( $# < 1 ))
