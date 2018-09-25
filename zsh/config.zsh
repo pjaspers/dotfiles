@@ -1,6 +1,6 @@
 export WORDCHARS=${WORDCHARS:s,/,,} # Stop deleting on slashes or spaces
 
-HISTFILE=$CONFIG_DIR/zsh/zsh_history HISTSIZE=10000 SAVEHIST=10000
+HISTFILE=$CONFIG_DIR/zsh/zsh_history HISTSIZE=50000 SAVEHIST=50000
 
 # If this is set, zsh sessions will append their history list to the
 # history file, rather than replace it. Thus, multiple parallel zsh
