@@ -1,4 +1,7 @@
 #! /usr/bin/env ruby
+def history
+  puts Readline::HISTORY.to_a
+end
 
 module PJ
   def enable_hirb
