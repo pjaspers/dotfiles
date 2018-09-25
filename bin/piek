@@ -1,0 +1,172 @@
+#! /usr/bin/env ruby
+
+require 'optparse'
+require "uri"
+require "net/http"
+require "json"
+Options = Struct.new(:hub, :activity, :device)
+
+# Control Harmony using the CLI, requires [Harmony API](https://github.com/maddox/harmony-api) to be running
+# on something, then change the IP here.
+
+VERSION='0.0.1'
+VERSION_NAME='it-me-piek'
+HARMONY_API_URL="http://192.168.1.167:8282"
+
+class Parser
+  def self.parse(options)
+    args = Options.new("world")
+
+    opt_parser = OptionParser.new do |opts|
+      opts.banner = "Usage: piek [options]"
+
+      opts.on("-uHUB", "--hub=HUB", "Hub to use") do |le_hub|
+        args.hub = le_hub
+      end
+
+      opts.on("-aActivity", "--activity=Activity", "Activity to use") do |le_activity|
+        puts le_activity
+        args.activity = le_activity
+      end
+
+      opts.on("-d", "--device", "Device to use") do |le_device|
+        args.actiity = le_device
+      end
+
+      opts.on("-h", "--help", "Prints this help") do
+        puts opts
+        exit
+      end
+    end
+
+    opt_parser.parse!(options)
+    return args
+  end
+end
+options = Parser.parse(ARGV)
+
+class PiekAPI
+  def initialize(base_url)
+    @base_url = base_url
+  end
+
+  def hub
+    "piek"
+  end
+
+  def status
+    do_request get_request("/hubs/#{hub}/status")
+  end
+
+  def hubs
+    do_request get_request("/hubs")
+  end
+
+  def commands
+    do_request get_request("/hubs/#{hub}/activities/watch-tv/commands")
+  end
+
+  def activities
+    do_request get_request("/hubs/#{hub}/activities")
+  end
+
+  def devices
+    do_request get_request("/hubs/#{hub}/devices")
+  end
+
+  def send_command(command)
+    do_request post_request("/hubs/#{hub}/commands/#{command}")
+  end
+
+  def do_request(request)
+    response = connection.request(request)
+    parsed_response = JSON.parse(response.body)
+    parsed_response
+  end
+
+  def get_request(path, params = {})
+    uri = URI.parse(File.join(@base_url, path))
+    uri.query = URI.encode_www_form(params)
+    request = Net::HTTP::Get.new(uri)
+    request.add_field("Content-Type", "application/json")
+    request
+  end
+
+
+  def post_request(path, params = {})
+    uri = URI.parse(File.join(@base_url, path))
+    uri.query = URI.encode_www_form(params)
+    request = Net::HTTP::Post.new(uri)
+    request.add_field("Content-Type", "application/json")
+    request
+  end
+
+  def connection
+    uri = URI.parse(@base_url)
+    @http = Net::HTTP.new(uri.host, uri.port)
+    @http.use_ssl = (uri.scheme == "https")
+    @http
+  end
+end
+require "pry"
+_height, width = `stty size`.scan(/\d+/).map(&:to_i)
+Signal.trap "SIGWINCH" do
+  _height, width = `stty size`.scan(/\d+/).map(&:to_i)
+  puts width
+end
+
+
+def magic(r, cols = 2)
+  ze_length = r.length / cols
+  arrs = r.each_slice(ze_length).to_a
+  first = arrs.shift
+  first.zip(*arrs)
+end
+magic(%w(o hai there dotter ino))
+def print_info(width, data)
+  padding = 2
+  data ||= {}
+  max_slug = data.max_by {|r| r["slug"].length}["slug"].length
+  max_label = data.max_by {|r| r["label"].length}["label"].length
+  onewidth = max_slug + padding + max_label + padding
+  columns = width/onewidth
+  columns = 1 if columns < 1
+  extra_padding = (width % onewidth)/columns - 2*padding
+
+  magic(data.sort_by{|r| r["slug"]}, columns).each do |arr|
+    values = arr.compact.inject([]) do |result, r|
+      slug = r["slug"]
+      label = r["label"]
+      s = "\e[1m%s\e[0m %s %s%s" % [slug.ljust(max_slug), " " * padding, label.to_s.ljust(max_label), " " * padding]
+      result << s
+      result
+    end
+    puts values.join(" " * (padding+extra_padding))
+  end
+end
+
+api = PiekAPI.new(HARMONY_API_URL)
+
+case ARGV.first
+when /status/
+  puts "=== #{api.hub.capitalize}"
+  response = api.status
+  puts "Off: #{response["off"]}"
+  puts "Current activity: #{response["current_activity"]["label"]}"
+  puts "Commands:"
+  print_info width, response["activity_commands"]
+when /activities/
+  puts "=== #{api.hub.capitalize}"
+  print_info(width, api.activities["activities"])
+when /devices/
+  puts "=== #{api.hub.capitalize}"
+  print_info(width, api.devices["devices"])
+when /commands/
+  puts "=== #{api.hub.capitalize}"
+  print_info(width, api.commands["commands"])
+when /hubs/
+  puts "=== #{api.hub.capitalize}"
+  puts api.hubs["hubs"].join("\n")
+else
+  puts PiekAPI.new(HARMONY_API_URL).send_command(ARGV.first)["message"]
+end
