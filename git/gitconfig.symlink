@@ -52,4 +52,4 @@
   helper = osxkeychain
 [fetch]
   # 'You need to prune your branches when fetching' → @to1ne
-	prune = true
+  prune = true
