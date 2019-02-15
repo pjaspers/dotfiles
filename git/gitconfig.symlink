@@ -50,3 +50,6 @@
 [credential]
   # Use macOS keychain to keep username and password
   helper = osxkeychain
+[fetch]
+  # 'You need to prune your branches when fetching' → @to1ne
+	prune = true
