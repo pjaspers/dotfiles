@@ -392,13 +392,6 @@ function ftco() {
     curl -sSI $1 | grep "location:" | awk '{print $2}' | tee >(pbcopy)
 }
 
-# Takes current branch and tries to deploy it using capistrano
-function dp() {
-    if [[ $1 ]] && env=$1 || env="staging"
-    branch=$(git rev-parse --abbrev-ref HEAD)
-    echo "GATEWAY=1 BRANCH=$branch bundle exec cap $env deploy" | tee >(pbcopy)
-}
-
 # Fetches the branch name of a Pull Request
 function pr() {
     if (( $# < 2 ))
