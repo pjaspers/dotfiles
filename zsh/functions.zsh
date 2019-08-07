@@ -280,6 +280,15 @@ function dutch_wordme() {
 }
 
 
+function awk8speak() {
+    echo "${1}" | awk '{ s=length($1)-2; printf "%s%d%s\n", substr($1,0,1), s, substr($1,s+2,1)}'
+}
+
+
+function k8speak() {
+    echo "${1}" | ruby -pe '$_.strip!;$_=[$_[0], $_[1...-1].length, $_[-1]].join'
+}
+
 function pj_velo() {
     url=https://www.velo-antwerpen.be/CallWebService/StationBussinesStatus.php
     station_id=97
