@@ -92,29 +92,8 @@ function powerrr {
     if [ ! -z "$case" ] && [ ! "$case" -eq "0" ]; then
        echo "🎧 L: $left R: $right Case: $case"
     else
+        echo "Well this is awkward"
     fi
-}
-function mx { ruby $ZSH/bin/copy_maxgif.rb $argv}
-
-# Syntax-highlight JSON strings or files
-function json() {
-	if [ -p /dev/stdin ]; then
-		# piping, e.g. `echo '{"foo":42}' | json`
-		python -mjson.tool | pygmentize -l javascript
-	else
-		# e.g. `json '{"foo":42}'`
-		python -mjson.tool <<< "$*" | pygmentize -l javascript
-	fi
-}
-
-# Takes a repo and sets the hook between pivotal and Github
-#
-# pivhub 10to1/report
-#
-function pivhub {
-   if (( $# < 1 ))
-   then echo "usage: pivhub <org/reponame>"; return 1; fi
-   curl -L --user "pjaspers" -d "{'name': 'pivotaltracker', 'active' : true, 'config': {'token':'${PIVOTAL_API_TOKEN}'}}" https://api.github.com/repos/$1/hooks
 }
 
 # Takes a Github Username and copies his/her public key
