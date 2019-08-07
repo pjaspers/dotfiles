@@ -274,6 +274,12 @@ EOF
 function wordme() {
   grep --colour -E "$1" /usr/share/dict/words
 }
+
+function dutch_wordme() {
+  grep --colour -E "$1" /Users/pjaspers/Library/Spelling/nl_NL.dic
+}
+
+
 function pj_velo() {
     url=https://www.velo-antwerpen.be/CallWebService/StationBussinesStatus.php
     station_id=97
