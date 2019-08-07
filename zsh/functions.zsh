@@ -141,6 +141,135 @@ function gifme() {
     /usr/bin/sqlite3 $db $query | awk '{split($0,a,"|"); printf "\033[1;31m%-20s\033[0m: %s\n",a[2],a[1]}'
 }
 
+function safari_top() {
+    local number=50
+    if (( $# > 0 ));then
+        number=$1
+    fi
+    local db="${HOME}/Library/Safari/History.db"
+    local query="select url, visit_count from history_items group by visit_count order by visit_count desc limit ${number}"
+    /usr/bin/sqlite3 -column -header $db $query
+}
+
+function safari_search() {
+    if (( $# < 1 ));then
+        echo "search term needed"
+        return
+    fi
+    local db="${HOME}/Library/Safari/History.db"
+    local query="select url, visit_count from history_items where url like '%${1}%' order by visit_count DESC;"
+    set -x
+    /usr/bin/sqlite3 -column -header $db $query
+}
+
+function safari_stats() {
+    local db="${HOME}/Library/Safari/History.db"
+
+    echo "Hourly"
+    /usr/bin/sqlite3 $db $hours <<EOF | spark
+select
+  count(*)from history_visits
+where
+  (redirect_source is not null) or (redirect_source is null and redirect_destination is null)
+group by
+  strftime('%H', datetime(history_visits.visit_time, 'unixepoch', '31 years'));
+EOF
+
+    echo "Weekdays"
+    /usr/bin/sqlite3 $db $weekdays <<EOF | spark
+select
+  count(*)from history_visits
+where
+  (redirect_source is not null) or (redirect_source is null and redirect_destination is null)
+group by
+  strftime('%w', datetime(history_visits.visit_time, 'unixepoch', '31 years'))
+EOF
+
+    echo "Months"
+    /usr/bin/sqlite3 $db $months <<EOF | spark
+select
+  count(*)from history_visits
+where
+  (redirect_source is not null) or (redirect_source is null and redirect_destination is null)
+group by
+  strftime('%m', datetime(history_visits.visit_time, 'unixepoch', '31 years'));
+EOF
+
+    echo "Days"
+    /usr/bin/sqlite3 $db <<EOF | spark
+select
+  count(*) from history_visits
+where
+  (redirect_source is not null) or (redirect_source is null and redirect_destination is null)
+group by
+  strftime('%j', datetime(history_visits.visit_time, 'unixepoch', '31 years'))
+EOF
+
+    echo "Most links visited in a day"
+    /usr/bin/sqlite3 -list -separator ' → ' $db <<EOF
+select
+  count(*) as count, strftime('%w %Y%m%d',datetime(history_visits.visit_time, 'unixepoch', '31 years')) as date
+from
+  history_visits
+where
+  (redirect_source is not null) or (redirect_source is null and redirect_destination is null)
+group by
+  strftime('%j%Y', datetime(history_visits.visit_time, 'unixepoch', '31 years'))
+order by
+  count desc
+limit 1
+EOF
+
+    echo "Most links visited in a month"
+    /usr/bin/sqlite3 -list -separator ' → ' $db <<EOF
+select
+  count(*) as count, strftime('%m %Y',datetime(history_visits.visit_time, 'unixepoch', '31 years')) as date
+from
+  history_visits
+join history_items on history_visits.history_item = history_items.id
+where (redirect_source is not null) or (redirect_source is null and redirect_destination is null)
+group by
+  strftime('%m%Y', datetime(history_visits.visit_time, 'unixepoch', '31 years'))
+order by
+  count desc
+limit 1
+EOF
+
+    echo "Top domains"
+    /usr/bin/sqlite3 -list -separator ' → ' $db <<EOF
+select
+  count(*) as thing, substr(replace(replace(replace(replace(url, 'https://', 'http://'), 'http://', ''), 'www.', ''), 'm.s', 's'), 0, instr(replace(replace(replace(replace(url, 'https://', 'http://'), 'http://', ''), 'www.', ''), 'm.s', 's'), '/')) as domain
+from
+  history_visits
+join
+  history_items on history_visits.history_item = history_items.id
+where
+  (redirect_source is not null) or (redirect_source is null and redirect_destination is null)
+group by
+  domain
+order by
+  thing desc
+limit 20
+EOF
+    # "select datetime(history_visits.visit_time, 'unixepoch', '31 years'), url, redirect_source, redirect_destination from history_visits join history_items on history_visits.history_item = history_items.id where ((redirect_source is not null) or (redirect_source is null and redirect_destination is null)) and datetime(history_visits.visit_time, 'unixepoch', '31 years') between '2018-08-01' and '2018-09-01' order by history_visits.visit_time"
+    #
+    # select avg(count) from (select count(*) as count, datetime(history_visits.visit_time, 'unixepoch', '31 years') as date from history_visits where ((redirect_source is not null) or (redirect_source is null and redirect_destination is null)) and date between '2018-01-01' and '2019-01-01' group by strftime('%j', date))
+    #
+    # select count/avg(max_hour - min_hour) as average_things from (
+    # select count(*) as count,
+    # min(strftime('%H', datetime(history_visits.visit_time, 'unixepoch', '31 years'))) as min_hour,
+    # max(strftime('%H', datetime(history_visits.visit_time, 'unixepoch', '31 years'))) as max_hour,
+    # datetime(history_visits.visit_time, 'unixepoch', '31 years') as date
+    # from
+    # history_visits
+    # where
+    # ((redirect_source is not null) or (redirect_source is null and redirect_destination is null))
+    # and
+    # date between '2018-01-01' and '2019-01-01'
+    # group by
+    # strftime('%j', date));
+}
+
 # Takes a regex and show all words that match it
 function wordme() {
   grep --colour -E "$1" /usr/share/dict/words
