@@ -460,10 +460,12 @@ function cert_info() {
 function pwcheck() {
     # https://www.troyhunt.com/ive-just-launched-pwned-passwords-version-2/
     echo -n "Password: "
-    read -s password
-    local head=$(echo -n $password | shasum | cut -b 1-5)
-    local tail=$(echo -n $password | shasum | cut -b 6-40 | tr /a-f/ /A-F/)
-    curl -sS https://api.pwnedpasswords.com/range/$head | grep "$tail"
+    read -rs password
+    local head
+    local tail
+    head=$(echo -n "${password}" | shasum | cut -b 1-5)
+    tail=$(echo -n "${password}" | shasum | cut -b 6-40 | tr /a-f/ /A-F/)
+    curl -sS "https://api.pwnedpasswords.com/range/${head}" | grep "${tail}"
 }
 
 # On Slack's free plan, you sometimes want to kill your own darlings/files. This helps doing
@@ -473,8 +475,8 @@ function slackfilesbegone() {
         echo "Fetchez le page numero \033[33;5m$page\033[0m"
         curl -sS "https://slack.com/api/files.list?token=$SLACK_TOKEN&page=$page" |
             jq '.files[].id' |
-            while read FILE_ID; do
-                echo -n "  Deleting \033[0;36m${FILE_ID//\"}\033[0m\n";
+            while read -r FILE_ID; do
+                printf "  Deleting \033[0;36m%s\033[0m\n" "${FILE_ID//\"}";
                 res=$(curl -sSX POST "https://slack.com/api/files.delete?token=$SLACK_TOKEN&file=${FILE_ID//\"}")
                 echo "  =~> $res"
             done
