@@ -4,7 +4,7 @@ Include ~/.ssh/*.config
 
 Host *
   SendEnv LANG LC_*
-  ForwardAgent yes
+  ForwardAgent no
   # https://developer.apple.com/library/content/technotes/tn2449/_index.html
   UseKeychain yes
   AddKeysToAgent yes
