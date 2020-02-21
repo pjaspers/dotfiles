@@ -1,0 +1,111 @@
+#! /usr/bin/env -S ruby --disable-gems
+
+require "uri"
+require "net/http"
+require "json"
+require "optparse"
+
+VERSION="0.1.1"
+VERSION_NAME="Dr. No"
+
+if ARGV[0] == "-v" or ARGV[0] == "--version"
+  puts "#{VERSION} (#{VERSION_NAME})"
+  exit
+end
+
+unless ARGV[0] && ARGV[1]
+  abort <<~MSG
+Nope.
+
+      blaze "Tervuursesteenweg 130, Leuven, Belgium" "Generaal Dempseylaan 9, Achel, Belgium"
+MSG
+end
+
+from_input = ARGV[0]
+to_input = ARGV[1]
+
+WAZE_URL = "www.waze.com"
+COORDINATE_REGEX = /\S\d{1,2}(?:\.|,)\d*\Z/
+
+GeocodeResult = Struct.new(:city, :name, :lat, :lon)
+RouteResult = Struct.new(:duration_in_seconds) do
+  def duration
+    humanize(duration_in_seconds)
+  end
+
+  def humanize(secs)
+    parts = [[60, [:second, :seconds]],
+             [60, [:minute, :minutes]],
+             [24, [:hour, :hours]],
+             [1000, [:day, :days]]].collect { |count, (singular, plural)|
+      if secs > 0
+        secs, n = secs.divmod(count)
+        count = n.to_i
+        next unless count > 0
+        if count > 1
+          "#{count} #{plural}"
+        else
+          "#{count} #{singular}"
+        end
+      end
+    }.compact.reverse
+    last = parts.pop
+    if parts.count > 0
+      "#{parts.join(", ")} and #{last}"
+    else
+      last
+    end
+  end
+end
+
+def waze_request(path:, query:)
+  query = URI.encode_www_form(query)
+  uri = URI::HTTPS.build(host: "www.waze.com", path: path, query: query)
+  req = Net::HTTP::Get.new(uri)
+  req["referer"] = "https://www.waze.com"
+  req["User-Agent"] = "Mozilla/5.0"
+
+  res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) {|http|
+    http.request(req)
+  }
+  JSON.parse(res.body)
+end
+
+def waze_geocode(address)
+  eu_coords = {lat: 47.498, lon: 19.040}
+  url_options = {
+    "q": address,
+                 "lang": "eng",
+                 "origin": "livemap",
+                 "lat": eu_coords[:lat],
+                 "lon": eu_coords[:lon]
+  }
+  response = waze_request(path: "/row-SearchServer/mozi", query: url_options)
+  best_hit = response.first
+  # :city, :name, :lat, :lon
+  GeocodeResult.new(
+    best_hit.fetch("city"),
+    best_hit.fetch("name"),
+    best_hit.fetch("location").fetch("lat"),
+    best_hit.fetch("location").fetch("lon")
+  )
+end
+
+def waze_route(from:, to:)
+  url_options = {
+    from: "x:#{from.lon} y:#{from.lat}",
+    to: "x:#{to.lon} y:#{to.lat}",
+    returnJSON: true,
+    timeout: 6000,
+    options: "AVOID_TRAILS:t,ALLOW_UTURNS"
+  }
+  response = waze_request(path: "/row-RoutingManager/routingRequest", query: url_options)
+end
+
+from = waze_geocode(from_input)
+to = waze_geocode(to_input)
+
+puts "Navigating from #{from.name} to #{to.name}\n\n"
+response = waze_route(from: from, to: to)
+route = RouteResult.new(response.fetch("response").fetch("totalRouteTime").to_i)
+puts route.duration
