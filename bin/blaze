@@ -5,6 +5,27 @@ require "net/http"
 require "json"
 require "optparse"
 
+# So turs out, Waze has an unofficial API that does't require a
+# token. This script uses that to lookup the duration for a trip.
+#
+# It's basically a fancy wrapper for this curl command:
+#
+#      curl -H 'referer: https://www.waze.com' -H 'User-Agent: Mozilla/5.0' 'https://www.waze.com/row-RoutingManager/routingRequest?from=x%3A4.683720111846924+y%3A50.876991271972656&to=x%3A5.4814982414245605+y%3A51.254154205322266&returnJSON=true&timeout=6000&options=AVOID_TRAILS%3At%2CALLOW_UTURNS'
+#
+# It takes two arguments, the start and stop position (in human words), it will then
+#
+#     - lookup lat long for those two (`waze_geocode`)
+#     - fetch the first route Waze returns (`waze_route`)
+#     - Display a human version of the duration time
+#
+# It's lacking:
+#
+#     - any error handling
+#     - support directly inputting lat long's
+#     - bunch of stuff
+#
+# But it works! (And should work on any system with ruby)
+
 VERSION="0.1.1"
 VERSION_NAME="Dr. No"
 
