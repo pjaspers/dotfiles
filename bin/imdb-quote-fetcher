@@ -1,0 +1,56 @@
+#! /usr/bin/env ruby
+
+require "nokogiri"
+require "net/http"
+
+unless ARGV[0]
+  abort "Gots to have a imdb number (tt0113277). Gots to man."
+end
+
+unless ARGV[0] =~ /tt[0-9]+/
+  puts "Now look you here. I don't think that's a imdb number."
+  puts "Preparing to fail..."
+end
+
+imdb_id = ARGV[0]
+
+class FetchMeAmadeus
+  attr_accessor :imdb_id
+
+  def initialize(imdb_id)
+    @imdb_id = imdb_id
+  end
+
+  def all_quotes
+    remove_cruft!
+    quotes
+  end
+
+  def html
+    @html ||= Net::HTTP.get(URI("https://www.imdb.com/title/#{imdb_id}/quotes"))
+  end
+
+  def parsed_html
+    @parsed_html ||= Nokogiri::HTML(html)
+  end
+
+  def remove_cruft!
+    # Get rid of the 'Share this article'
+    parsed_html.css('.did-you-know-actions').remove
+  end
+
+  def quote_block
+    parsed_html.css("#quotes_content")
+  end
+
+  def quotes
+    quote_block.css(".quote").map do |n|
+      format_quote(n.inner_text)
+    end
+  end
+
+  def format_quote(text)
+    text.gsub!(/:[\n]/, ': ').strip
+  end
+end
+puts FetchMeAmadeus.new(imdb_id).all_quotes
