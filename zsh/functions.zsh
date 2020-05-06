@@ -340,6 +340,45 @@ function pj-fetch-twitter-gifs() {
     echo "Exported the gifs to: $result"
 }
 
+# https://twitter.com/Inferis/status/1072920135080402944
+function pj-lookup-tweet() {
+    if (( $# < 1 ))
+    then echo "usage: pj-lookup-tweet <tweet id>"; return 1; fi
+    curl -H "Authorization: Bearer ${BEECH_BEARER}" \
+         "https://api.twitter.com/1.1/statuses/show.json?id=$1" | jq '.'
+}
+
+
+function pj-fetchez-twitter-gifs() {
+    if (( $# < 1 ))
+    then echo "usage: pj-fetch-twitter-gifs <username>"; return 1; fi
+    rm /var/tmp/$1.*
+    csv=/var/tmp/$1.csv
+    urls_file=/var/tmp/$1.only_urls
+    result=/var/tmp/$1.gifs
+    echo "Fetching tweets using the curl"
+    curl -sS -H "Authorization: Bearer ${BEECH_BEARER}" \
+         "https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name=$1&count=1000" | jq '.[] | .text' > $csv
+    echo "Extracting URLs -> $urls_file"
+    cat $csv | sed -ne 's/.*\(http[^"]*\).*/\1/p' | sed '/instagram/d' | sed -e 's/ .*$//' | sort -u | uniq -u > $urls_file
+    echo "Checking for gifs -> $result"
+    for i in $(cat $urls_file); do
+        curl -sSIL $i | grep 'image/gif' && (echo "Found ${i}" && echo $i >> $result)
+    done
+    echo "Exported the gifs to: $result"
+}
+
+function pj-beech-bearer-token() {
+    local bearer_token=$(echo -n "${BEECH_API_TOKEN}:${BEECH_API_SECRET}" | base64)
+    echo "Calculated a token: ${bearer_token}"
+    curl -X POST \
+         -H "Authorization: Basic ${bearer_token}" \
+         -H "Content-Type: application/x-www-form-urlencoded;charset=UTF-8" \
+         -d "grant_type=client_credentials" \
+         https://api.twitter.com/oauth2/token
+    echo "You should have a JSON with `access_token`"
+}
+
 ## Set a random background color for this shell
 function pj-random-color() {
     color=$(random_css_color)
@@ -432,7 +471,11 @@ function random_line() {
     if (( $# < 1 ))
     then echo "usage: random_line path/to/file"; return 1; fi
 
-   head -$((${RANDOM} % `wc -l < $1` + 1)) $1 | tail -1
+    # Get random in the parent shell because zsh, caches RANDOM in the subshell
+    # https://stackoverflow.com/questions/40067089/zsh-function-only-runs-once
+    rand=$RANDOM
+    awk 'NF' $1 | head -$((${rand} % `wc -l < $1` + 1)) | tail -1
+    # head -$((${rand} % `wc -l < $1` + 1)) $1 | tail -1
 }
 
 function wat() {
@@ -487,11 +530,150 @@ function slackfilesbegone() {
 # Generate a Simpsons-ladida, thanks to the incomparable @lewisfidlers
 function ladida () {
     url="https://bd8wz9ifl5.execute-api.eu-west-3.amazonaws.com/Production/%7Bladida+%7D"
-    curl -G -s --data-urlencode "text=$*" $url | pbcopy
+    curl -G -s --data-urlencode "text=$*" $url | tee >(pbcopy)
 }
 
 # Get a man page as a PDF in Preview.app
 # Borrowed from oh-my-zsh, and seen [here](https://twitter.com/emilyst/status/1039540902773972997)
-function man-preview() {
+function oh-man() {
     man -t "$@" | open -f -a Preview
+}
+
+function fbot() {
+    echo "Plusbot is herpakting itself"
+    curl "http://plusplusplusbot.herokuapp.com/heroku/keepalive"
+}
+
+function drssh {
+    lat="50.87959"
+    lng="4.70093"
+    cty="Leuven"
+
+    # Fetch data from Buienradar, they return data in this format:
+    #
+    #       000|22:20
+    #       000|22:25
+    #       ...
+    #       084|00:20
+    #
+    # The first part defines the amount of rain (255 is max). More info
+    # here: http://gps.buienradar.nl/
+    bar=$(curl -LsS "http://gps.buienradar.nl/getrr.php?lat=${lat}&lon=${lng}" |
+                 # split on "|"
+                 cut -f1 -d "|"                                                 |
+                 # parse to string
+                 bc                                                             |
+                 # create a sparkline
+                 spark)
+    # Print looked up formatted address
+    printf "%s (%s)\n" "${bar}" "${cty}"
+    # Done.
+}
+
+function ytdl {
+    if (( $# < 1 ))
+    then echo "I need a youtube playlist URL"; return 1; fi
+
+    youtube-dl --ignore-errors \
+               --output "%(uploader)s/%(playlist)s/%(playlist)s-S01E%(playlist_index)s-%(title)s-[%(id)s].%(ext)s" \
+               --format "bestvideo[ext=mp4]+bestaudio[ext=m4a]" \
+               --merge-output-format mp4 \
+               --add-metadata \
+               --write-thumbnail \
+               "${1}"
+}
+
+function m3u8dl {
+    if (( $# < 1 ))
+    then echo "I need a m3u8 URL"; return 1; fi
+
+    local user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_5) AppleWebKit/601.7.8 (KHTML, like Gecko) Version/9.1.3 Safari/537.86.7"
+    local url=$1
+    ffmpeg -user_agent "${user_agent}" \
+          -i "${url}" \
+          -c copy \
+          output.mkv
+}
+
+function sourcegraph {
+    docker run --publish 7080:7080 --publish 2633:2633 --rm --volume ~/.sourcegraph/config:/etc/sourcegraph --volume ~/.sourcegraph/data:/var/opt/sourcegraph sourcegraph/server:3.1.1
+}
+
+function jsonc {
+    pbpaste | jq '.' | pbcopy
+}
+
+function phonenumber_in_pi {
+  curl -sS 'https://api.pi.delivery/v1/pi?start=1038746356&numberOfDigits=10' | jq '.content'
+}
+
+function teuf {
+    curl  -sS 'https://my3.raceresult.com/RRPublish/data/list.php?callback=jQuery17103436687974358589_1552814482559&eventid=119385&key=dd4d2d684b932a552ca47586a69767f5&listname=Result+Lists%7CResults+47km&page=results&contest=1&r=all&l=0&openedGroups=&term=&mid=102249&_=1552814518112' | sed 's/jQuery.*data"/{"data"/' | sed 's/);//' | jq '.data | map(select(.[0] == 1))[0] | {position: .[1], cp1: .[6], km_17: .[8], km_30: .[10], km_41: .[12], racetime: .[21]}' 2> /dev/null
+}
+
+function mdbyname {
+  if (( $# < 1 ))
+  then echo "I need a name to search for, you can use * as placeholders"; return 1; fi
+  # https://developer.apple.com/library/archive/documentation/CoreServices/Reference/MetadataAttributesRef/Reference/CommonAttrs.html#//apple_ref/doc/uid/TP40001694-SW1
+  # c is for case insensitive
+  # d is for insensitive to diacritical marks
+  mdfind "kMDItemFSName == '${1}'cd"
+}
+
+function mdfind-with-ext {
+  if (( $# < 2 ))
+  then echo "I need a name to search for, and an extension"; return 1; fi
+  # Run mdimport -A to see all identifiers
+  # https://developer.apple.com/library/archive/documentation/CoreServices/Reference/MetadataAttributesRef/Reference/CommonAttrs.html#//apple_ref/doc/uid/TP40001694-SW1
+  # c is for case insensitive
+  # d is for insensitive to diacritical marks
+  mdfind "kMDItemFSName == '*${1}*'cd && kMDItemFSName == '*.${2}'cd"
+}
+
+function christmas() {
+    echo "$(($(date -v25d -v12m +%j) - $(date +%j)))"
+}
+
+function colgo() {
+    local term="${1}"
+    local url="https://productzoeker.colruytgroup.com/wps/proxy/https/ownbrandproductmw.colruytgroup.com/ownbrandproductmw/rest/v1/nl/search/article/keyword?catalog=PRODMARK&term=${term}&pageSize=15&pageNumber=1"
+    local fullUrl="https://colruyt.collectandgo.be/cogo/nl/artikeldetail/"
+    curl -sS ${url} | jq "[ .searchResults[] | {number: .commercialArticleNumber, url: \"${fullUrl}\(.commercialArticleNumber)\", name: .productDetailInheritedFromGTIN.seoFriendlyName} ]"
+}
+
+function june() {
+    # Find your devices by going to https://app.june.energy/contract/<contract_id>/devices
+    # Monitor the call it makes to:
+    #
+    #       https://core.june.energy/rest/contracts/7321/devices?id=7321'
+    #
+    # Then not the token and the url
+    local contract_id=7321
+    local june_token=${JUNE_TOKEN?}
+
+    curl -sS "https://core.june.energy/rest/contracts/${contract_id}/devices?id=${contract_id}" \
+         -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -H "Authorization: Bearer ${june_token}" | jq '. |
+  .data[] |
+    .id as $id |
+    .attributes |
+      { id: $id,
+        battery,
+        code,
+        name: (.name // .type),
+        img: .last_image,
+        result: {day: .last_day, night: .last_night},
+        last_seen: (.last_image_date // 0 | (. / 1000 | strftime("%Y-%m-%d %H:%M"))),
+        measure_frequency,
+        measures_available,
+        other_keys: (. | keys)}
+'
+}
+
+function juned() {
+    curl -sS "https://core.june.energy/rest/contracts/7321/devices/7167" \
+         -H 'Accept: application/json' \
+         -H 'Content-Type: application/json' \
+         -H "Authorization: Bearer ${JUNE_TOKEN?}" | jq '.'
 }
