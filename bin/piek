@@ -35,6 +35,7 @@ class Parser
 
       opts.on("-h", "--help", "Prints this help") do
         puts opts
+        puts HARMONY_API_URL
         exit
       end
     end
