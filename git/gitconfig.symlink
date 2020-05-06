@@ -4,7 +4,7 @@
 [user]
   name = pjaspers
   # Warn me if no email set
-  useConfigOnly = true
+  # useConfigOnly = true
 [core]
   excludesfile = /Users/pjaspers/.gitignore
   editor = /usr/bin/vim
