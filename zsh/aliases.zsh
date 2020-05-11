@@ -36,15 +36,6 @@ alias ssh-config='$EDITOR ~/.ssh/config'
 alias g=git
 alias gti=git
 alias gst='g status -sb'
-if (( $+commands[gh] ))
-then
-    # https://github.com/jingweno/gh
-    # Alias generated with `gh alias -s`
-    alias git=gh
-    if type compdef > /dev/null; then
-        compdef gh=git
-    fi
-fi
 
 ## OSX Stuff
 
