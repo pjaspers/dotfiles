@@ -53,3 +53,6 @@ export PYENV_ROOT=/usr/local/var/pyenv
 alias niles='WEBSCALE=1; ruby -e "print File.open('"'/usr/share/dict/words'"').read.lines.reject{|w| w.length < 3 || 10 < w.length}.sample(4).map{|w| w.strip! && w.downcase}.join('"'-'"')" | tee >(pbcopy)'
 
 alias niles='WEBSCALE=1; ruby -e "print File.open('"'/usr/share/dict/words'"').read.lines.reject{|w| w.length < 3 || 10 < w.length}.sample(4).map{|w| w.strip! && w.downcase}.join('"'-'"')" | tee >(pbcopy)'
+
+# Stolen from @to1ne, quick way to read news behind a paywall
+alias lire="links -http.fake-user-agent 'Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)'"
