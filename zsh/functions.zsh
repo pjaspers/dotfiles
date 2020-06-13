@@ -516,13 +516,14 @@ function pwcheck() {
 function slackfilesbegone() {
     for page in {0..50}; do
         echo "Fetchez le page numero \033[33;5m$page\033[0m"
-        curl -sS "https://slack.com/api/files.list?token=$SLACK_TOKEN&page=$page" |
+        curl -sS "https://slack.com/api/files.list?token=${SLACK_TOKEN:?}&page=${page:?}&show_files_hidden_by_limit=1" |
             jq '.files[].id' |
             while read -r FILE_ID; do
                 printf "  Deleting \033[0;36m%s\033[0m\n" "${FILE_ID//\"}";
-                res=$(curl -sSX POST "https://slack.com/api/files.delete?token=$SLACK_TOKEN&file=${FILE_ID//\"}")
+                res=$(curl -sSX POST "https://slack.com/api/files.delete?token=${SLACK_TOKEN:?}&file=${FILE_ID//\"}")
                 echo "  =~> $res"
             done
+        sleep 60
     done
 }
 
