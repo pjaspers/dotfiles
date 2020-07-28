@@ -18,7 +18,6 @@ export PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11/bin:/usr/local
 PROJECT_PATHS=(~/development/*)
 
 # Load [chruby](https://github.com/postmodern/chruby) and set default ruby
-# to 2.4.0
 if [[ -d /usr/local/opt/chruby ]]
 then
     source /usr/local/opt/chruby/share/chruby/chruby.sh
@@ -27,7 +26,7 @@ else
     source /usr/local/share/chruby/chruby.sh
     source /usr/local/share/chruby/auto.sh
 fi
-chruby ruby-2.4.0
+chruby ruby-2.7
 
 export PATH="$HOME/.cargo/bin:$PATH"
 
