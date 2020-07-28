@@ -1,5 +1,11 @@
 export WORDCHARS=${WORDCHARS:s,/,,} # Stop deleting on slashes or spaces
 
+# Let's see if this makes backwards kill word, work like I expect it to
+#
+# e.g. bob-stinkt would take 2 backwards-kill-words
+autoload -U select-word-style
+select-word-style bash
+
 HISTFILE=$CONFIG_DIR/zsh/zsh_history HISTSIZE=50000 SAVEHIST=50000
 
 # If this is set, zsh sessions will append their history list to the
