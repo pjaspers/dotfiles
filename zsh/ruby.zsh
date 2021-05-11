@@ -1,11 +1,11 @@
 # From [here](http://ryan.mcgeary.org/2011/02/09/vendor-everything-still-applies/)
 # VENDOR ALL THE THINGS
 alias b="bundle"
-alias bi="b install --path vendor"
-alias bil="bi --local"
-alias bu="b update"
-alias be="b exec"
-alias binit="bi && b package && echo 'vendor/ruby' >> .gitignore"
+alias bi="bundle install"
+alias bil="bundle install --local"
+alias bu="bundle update"
+alias be="bundle exec"
+alias binit="bundle install && bundle package && bundle config set path 'vendor' && echo 'vendor/ruby' >> .gitignore"
 
 # From https://twitter.com/defv/status/185346025467281409
 function last_migration_version() {
