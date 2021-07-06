@@ -1,0 +1,37 @@
+
+# http://zsh.sourceforge.net/Intro/intro_3.html
+# There are five startup files that zsh will read commands from:
+#
+# $ZDOTDIR/.zshenv
+# $ZDOTDIR/.zprofile
+# $ZDOTDIR/.zshrc
+# $ZDOTDIR/.zlogin
+# $ZDOTDIR/.zlogout
+#
+# if it is needed by a command run non-interactively: .zshenv
+# if it should be updated on each new shell: .zshenv
+# if it runs a command which may take some time to complete: .zprofile
+# if it is related to interactive usage: .zshrc
+# if it is a command to be run when the shell is fully setup: .zlogin
+# if it releases a resource acquired at login: .zlogout
+
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+
+# Make $ZSH path available as a shortcut
+export CONFIG_DIR=$HOME/.config
+export ZSH=$HOME/.config/dotfiles
+export DOTFILES=$HOME/.config/dotfiles
+
+export ANDROID_SDK_ROOT=/usr/local/Cellar/android-sdk/r18
+
+PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11/bin
+PATH="${PATH}:/Library/TeX/texbin"
+PATH="${PATH}:/usr/local/Cellar/android-sdk/r18"
+PATH="${PATH}:${DOTFILES}/bin"
+PATH="${PATH}:/.cargo/bin"
+PATH="${PATH}:/.yarn/bin"
+PATH="${PATH}:/.config/yarn/global/node_modules/.bin"
+
+# This sets up where the [pj.plugin.zsh](https://github.com/robbyrussell/oh-my-zsh/blob/96e4e5dd032d2df75f87d5b3e5594d527c655b16/plugins/pj/pj.plugin.zsh) so I can easily jump to a project.
+PROJECT_PATHS=(~/development/*)

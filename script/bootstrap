@@ -35,6 +35,7 @@ link_file $DOTFILES_ROOT $CONFIG_DIR/dotfiles
 
 echo "  => Setting up zsh"
 [[ -d $CONFIG_DIR/zsh ]] || mkdir $CONFIG_DIR/zsh
+link_file $DOTFILES_ROOT/zsh/zshenv $HOME/.zshenv
 link_file $DOTFILES_ROOT/zsh/zshrc $HOME/.zshrc
 
 echo "  => Setting up rubies"
