@@ -678,3 +678,9 @@ function juned() {
          -H 'Content-Type: application/json' \
          -H "Authorization: Bearer ${JUNE_TOKEN?}" | jq '.'
 }
+
+function ssh_reload! {
+    security unlock-keychain ~/Library/Keychains/login.keychain-db
+    ssh-add -K ~/.ssh/*_rsa
+    eval $(ssh-agent)
+}
