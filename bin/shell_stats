@@ -1,0 +1,29 @@
+#! /usr/bin/env ruby
+
+require "date"
+all_lines = File.read(File.expand_path("~/.config/zsh/zsh_history")).encode("UTF-8", invalid: :replace).lines.map do |l|
+  preamble,command = l.split(";")
+  timestamp = preamble.to_s.split(":")[1]
+  next unless command
+  next unless preamble
+  next unless timestamp.to_i != 0
+  time = Time.at(timestamp.to_i)
+  date = time.to_date
+  {
+    time: time,
+    date: date,
+    command: command
+  }
+end
+all_lines.compact!
+all_lines.sort_by! {|h| h[:time] }
+first = all_lines.first[:date]
+last = all_lines.last[:date]
+count = all_lines.count
+average = count / (last - first).to_f
+most_on_single_day = all_lines.group_by{|h| h[:date]}.map{|k,v| [k,v.size]}.max_by(&:last)
+
+puts "Between %s and %s you have issues %d commands, averaging %d per day" % [first, last, count, average]
+puts "Your record is %d commands in a single day (%s)" % most_on_single_day.reverse
+
+puts all_lines.group_by{|h| h[:date].wday}.map{|k,v| [k,v.size]}
