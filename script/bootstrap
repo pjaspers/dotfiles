@@ -9,10 +9,10 @@ set -e
 link_file() {
     local src=$1 dest=$2
 
-    if [ -f "$dest" -o -d "$dest" ]
+    if [ -h "${dest}" -o -f "${dest}" ]
     then
-	echo "    Removing $dest"
-	rm -rf "$dest"
+	      echo "    Removing ${dest}"
+	      rm -rf "${dest}"
     fi
     echo "    Linking $(basename $src) to $dest"
     ln -s "$src" "$dest"
