@@ -1,33 +1,7 @@
 #!/bin/zsh
-
-
 bindkey -e # Emacs bindings
 
 [[ $TERM == "dumb" ]] && unsetopt zle && PS1='$ ' && return
-
-export ANDROID_SDK_ROOT=/usr/local/Cellar/android-sdk/r18
-export PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11/bin:/usr/local/sbin:/AdobeAIRSDK/bin:/usr/local/share/npm/bin:/Library/TeX/texbin:/usr/local/Cellar/android-sdk/r18:/Users/pjaspers/dotfiles/bin:/opt/oracle/instantclient_10_2:/usr/local/share/python:/usr/local/heroku/bin:$ZSH/bin:/Users/pjaspers/.local/bin
-
-# Pretty much took over from: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
-UNAME_MACHINE="$(/usr/bin/uname -m)"
-if [[ "$UNAME_MACHINE" == "arm64" ]]; then
-    # On ARM macOS, this script installs to /opt/homebrew only
-    export HOMEBREW_PREFIX="/opt/homebrew"
-    export HOMEBREW_REPOSITORY="${HOMEBREW_PREFIX}"
-else
-    # On Intel macOS, this script installs to /usr/local only
-    export HOMEBREW_PREFIX="/usr/local"
-    export HOMEBREW_REPOSITORY="${HOMEBREW_PREFIX}/Homebrew"
-fi
-
-export HOMEBREW_CELLAR="${HOMEBREW_PREFIX}/Cellar";
-export PATH="${HOMEBREW_PREFIX}/bin:${HOMEBREW_PREFIX}/sbin${PATH+:$PATH}";
-export MANPATH="${HOMEBREW_PREFIX}/share/man${MANPATH+:$MANPATH}:";
-export INFOPATH="${HOMEBREW_PREFIX}/share/info:${INFOPATH:-}";
-
-
-# This sets up where the [pj.plugin.zsh](https://github.com/robbyrussell/oh-my-zsh/blob/96e4e5dd032d2df75f87d5b3e5594d527c655b16/plugins/pj/pj.plugin.zsh) so I can easily jump to a project.
-PROJECT_PATHS=(~/development/*)
 
 # Load [chruby](https://github.com/postmodern/chruby) and set default ruby
 if [[ -d "${HOMEBREW_PREFIX:?}/share/chruby" ]]

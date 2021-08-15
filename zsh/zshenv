@@ -1,4 +1,5 @@
-
+#!/bin/zsh
+#
 # http://zsh.sourceforge.net/Intro/intro_3.html
 # There are five startup files that zsh will read commands from:
 #
@@ -20,8 +21,8 @@ export LANG=en_US.UTF-8
 
 # Make $ZSH path available as a shortcut
 export CONFIG_DIR=$HOME/.config
-export ZSH=$HOME/.config/dotfiles
-export DOTFILES=$HOME/.config/dotfiles
+export ZSH=${CONFIG_DIR}/dotfiles
+export DOTFILES=${CONFIG_DIR}/dotfiles
 
 export ANDROID_SDK_ROOT=/usr/local/Cellar/android-sdk/r18
 
@@ -32,6 +33,22 @@ PATH="${PATH}:${DOTFILES}/bin"
 PATH="${PATH}:/.cargo/bin"
 PATH="${PATH}:/.yarn/bin"
 PATH="${PATH}:/.config/yarn/global/node_modules/.bin"
+
+# Pretty much took over from: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
+UNAME_MACHINE="$(/usr/bin/uname -m)"
+if [[ "$UNAME_MACHINE" == "arm64" ]]; then
+    # On ARM macOS, this script installs to /opt/homebrew only
+    export HOMEBREW_PREFIX="/opt/homebrew"
+    export HOMEBREW_REPOSITORY="${HOMEBREW_PREFIX}"
+else
+    # On Intel macOS, this script installs to /usr/local only
+    export HOMEBREW_PREFIX="/usr/local"
+    export HOMEBREW_REPOSITORY="${HOMEBREW_PREFIX}/Homebrew"
+fi
+
+export PATH="${HOMEBREW_PREFIX}/bin:${HOMEBREW_PREFIX}/sbin${PATH+:$PATH}";
+export MANPATH="${HOMEBREW_PREFIX}/share/man${MANPATH+:$MANPATH}:";
+export INFOPATH="${HOMEBREW_PREFIX}/share/info:${INFOPATH:-}";
 
 # This sets up where the [pj.plugin.zsh](https://github.com/robbyrussell/oh-my-zsh/blob/96e4e5dd032d2df75f87d5b3e5594d527c655b16/plugins/pj/pj.plugin.zsh) so I can easily jump to a project.
 PROJECT_PATHS=(~/development/*)
