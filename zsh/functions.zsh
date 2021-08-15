@@ -681,6 +681,7 @@ function juned() {
 
 function ssh_reload! {
     security unlock-keychain ~/Library/Keychains/login.keychain-db
-    ssh-add -K ~/.ssh/*_rsa
     eval $(ssh-agent)
+    ssh-add -K ~/.ssh/*_rsa
+    ssh-add -K ~/.ssh/personal
 }
