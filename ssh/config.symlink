@@ -1,10 +1,15 @@
 # https://serverfault.com/a/789154
 # Load any file ending with .config
+
+Include ~/.ssh/*.config
+
+# From `man ssh_config`
+#      For each parameter, the first obtained value will be used.
+#
+# So that's why the `Host *` is set after loading the others.
 Host *
   SendEnv LANG LC_*
   ForwardAgent no
   # https://developer.apple.com/library/content/technotes/tn2449/_index.html
   UseKeychain yes
   AddKeysToAgent yes
-
-Include ~/.ssh/*.config
