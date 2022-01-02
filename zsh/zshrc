@@ -39,3 +39,5 @@ done
 # A pretty, minimal and fast ZSH prompt
 autoload -U promptinit && promptinit
 prompt pure
+
+. /opt/homebrew/opt/asdf/asdf.sh

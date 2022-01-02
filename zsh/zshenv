@@ -33,6 +33,7 @@ PATH="${PATH}:${DOTFILES}/bin"
 PATH="${PATH}:/.cargo/bin"
 PATH="${PATH}:/.yarn/bin"
 PATH="${PATH}:/.config/yarn/global/node_modules/.bin"
+PATH="${PATH}:${HOME}/.local/bin"
 
 # Pretty much took over from: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
 UNAME_MACHINE="$(/usr/bin/uname -m)"
