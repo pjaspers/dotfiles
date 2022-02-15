@@ -692,3 +692,7 @@ function ssh_reload! {
     ssh-add -K ~/.ssh/*_rsa
     ssh-add -K ~/.ssh/personal
 }
+
+function linux {
+  ruby -e "print 'gnulinux'.chars.shuffle.insert(3, '/').join('')" | tee >(pbcopy)
+}
