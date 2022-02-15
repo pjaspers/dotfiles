@@ -27,13 +27,13 @@ export DOTFILES=${CONFIG_DIR}/dotfiles
 export ANDROID_SDK_ROOT=/usr/local/Cellar/android-sdk/r18
 
 PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/X11/bin
-PATH="${PATH}:/Library/TeX/texbin"
-PATH="${PATH}:/usr/local/Cellar/android-sdk/r18"
-PATH="${PATH}:${DOTFILES}/bin"
-PATH="${PATH}:/.cargo/bin"
-PATH="${PATH}:/.yarn/bin"
-PATH="${PATH}:/.config/yarn/global/node_modules/.bin"
-PATH="${PATH}:${HOME}/.local/bin"
+PATH="${PATH}:/Library/TeX/texbin"                           # latex
+PATH="${PATH}:/usr/local/Cellar/android-sdk/r18"             # android
+PATH="${PATH}:${DOTFILES}/bin"                               # me
+PATH="${PATH}:${HOME}/.cargo/bin"                            # rust
+PATH="${PATH}:${HOME}/.yarn/bin"                             # yarn
+PATH="${PATH}:${HOME}/.config/yarn/global/node_modules/.bin" # yarn
+PATH="${PATH}:${HOME}/.local/bin"                            # pipx
 
 # Pretty much took over from: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
 UNAME_MACHINE="$(/usr/bin/uname -m)"
