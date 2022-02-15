@@ -315,9 +315,16 @@ function pj_velo_waiting_list() {
 function pj_check_ssl() {
     if (( $# < 1 ))
    then echo "usage: pj_check_ssl <site>"; return 1; fi
-    echo | openssl s_client -connect $1:443 2>/dev/null | openssl x509 -text
+    echo | openssl s_client -connect $1:443 -servername $1 2>/dev/null | openssl x509 -text
 }
 
+# Checks what process is currently bound to port with <portnumber>
+function pj_check_port(){
+    if (( $# < 1 ))
+    then echo "usage: pj_check_port <portnumber>"; return 1; fi
+
+    lsof -nP -iTCP -sTCP:LISTEN | grep $1
+}
 # Fetches the last 1000 tweets of a twitter username and scans them for gifs
 #       requirements: - https://github.com/sferik/t
 #
