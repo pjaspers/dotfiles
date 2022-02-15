@@ -43,7 +43,6 @@
   # git graphviz --first-parent master | dot -Tpng > testgit.png
   graphviz = "!f() { echo 'digraph git {' ; git log --pretty='format:  %h -> { %p }' \"$@\" | sed 's/[0-9a-f][0-9a-f]*/\"&\"/g' ; echo '}'; }; f"
 	recent = branch --sort=-committerdate\n           --format=\"%(committerdate:relative)%09%(refname:short)\"
-
 [color]
   ui = true
 [push]
@@ -58,3 +57,5 @@
   prune = true
 [pull]
 	rebase = true
+[gitlab]
+	user = pjaspers
