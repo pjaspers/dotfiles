@@ -1,0 +1,94 @@
+#! /usr/bin/env ruby
+#
+#
+# V1
+# function heroku-vault {
+#     # security create-keychain heroku-vault
+#     local token=$(security find-generic-password -s $1 -w heroku-vault)
+#     # local token=$(cat ~/.config/heroku/accounts/$1 | grep password | awk -F': ' '{print $2}')
+#     export HEROKU_API_KEY=$token
+# }
+
+KEYCHAIN = "heroku-vault.keychain"
+
+keychains = `security list-keychains`.split("\n").inject({}) do |r, s|
+  #  "    \"/Users/pjaspers/Library/Keychains/login.keychain-db\""
+  path = s.split('"').last # Get rid of weird quotes
+  name = File.basename(path).strip
+  r[name] = path
+  r
+end
+
+# Make sure the keychain is setup
+unless keychains.include?("#{KEYCHAIN}-db")
+  new_keychain_path = File.expand_path("~/Library/Keychains/#{KEYCHAIN}-db")
+  if File.exist?(new_keychain_path)
+    puts "You already had a file, it was just not added to the keychain yet"
+  else
+    `security create-keychain "#{KEYCHAIN}"`
+  end
+  all_keychains = (keychains.map{|k,v| v} + [new_keychain_path]).uniq
+  `security list-keychains -s #{all_keychains.join(" ")}`
+end
+
+if ARGV[0] == "exec"
+  # Will print out the thing
+  command_and_args = ARGV[3..-1]
+  account = ARGV[1]
+  token = `security find-generic-password -s "heroku-#{account}" -w #{KEYCHAIN}`.strip
+  if $?.success?
+    thing = `security find-generic-password -s "heroku-#{account}" #{KEYCHAIN}`
+    user = thing.split("\n").detect {|l| l.match("acct")}.split('"').last
+    puts <<~NETRC
+machine api.heroku.com
+  login #{user}
+  password #{token}
+machine git.heroku.com
+  login #{user}
+  password #{token}
+  NETRC
+    puts "HEROKU_API_KEY=#{token}"
+    # system({"HEROKU_API_KEY" => token}, *command_and_args)
+  else
+    puts "Could not find #{account} in the keychain"
+    exit(1)
+  end
+elsif ARGV[0] == "add"
+  # Safely store email and token in the keychain
+  command_and_args = ARGV[3..-1]
+  account = ARGV[1]
+  user = ARGV[2]
+  password = ARGV[3]
+  puts "security add-generic-password -a #{user} -s heroku-#{account} -w #{password} #{KEYCHAIN}"
+elsif ARGV[0] == "list"
+  # List all accounts known in the keychain
+  magic_account_name_blob = "0x00000007"
+  accounts = `security dump-keychain #{KEYCHAIN}`.split("\n").select {|l| l.match(magic_account_name_blob)}.map {|l| l.split('"').last}
+  puts accounts
+elsif ARGV[0] == "fix"
+  # This works with heroku's deprecated(?) [heroku-accounts](https://github.com/heroku/heroku-accounts) tool
+  # Keep the token in the keychain, but write it to the places where heroku-accounts expects it.
+  account = ARGV[1]
+  token = `security find-generic-password -s "heroku-#{account}" -w #{KEYCHAIN}`.strip
+  if $?.success?
+    thing = `security find-generic-password -s "heroku-#{account}" #{KEYCHAIN}`
+    user = thing.split("\n").detect {|l| l.match("acct")}.split('"').last
+    File.open(File.expand_path("~/.config/heroku/accounts/#{account}"), "w") do |f|
+      f.write <<STR
+username: #{user}
+password: #{token}
+STR
+    end
+  else
+    puts "I don't know anything about #{account}"
+    exit(1)
+  end
+else
+  puts <<HELP
+You want one of these:
+
+heroku-vault exec <account> # Prints out the user and token
+heroku-vault add <account> <email> <token> # Securely stores the token in the keychain
+heroku-vault list # Prints out all known accounts
+HELP
+end
