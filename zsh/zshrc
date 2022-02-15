@@ -40,4 +40,7 @@ done
 autoload -U promptinit && promptinit
 prompt pure
 
-. /opt/homebrew/opt/asdf/asdf.sh
+if [[ -a ${HOMEBREW_PREFIX}/opt/asdf/asdf.sh ]]
+then
+  source /opt/homebrew/opt/asdf/asdf.sh
+fi
