@@ -696,3 +696,12 @@ function ssh_reload! {
 function linux {
   ruby -e "print 'gnulinux'.chars.shuffle.insert(3, '/').join('')" | tee >(pbcopy)
 }
+
+function notify_ios {
+    local_json="{\"message\": \"${2}\",\"title\": \"${1}\"}"
+    echo $local_json
+    curl -X POST \
+         -H "Authorization: Bearer ${HASS_TOKEN:?}" \
+         -H "Content-Type: application/json" \
+         "${HASS_IP}:8123/api/services/notify/mobile_app_proteus" -d "${local_json}"
+}
