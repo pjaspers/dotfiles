@@ -1,7 +1,10 @@
 #! /usr/bin/env zsh
 function _change_ruby() {
-    # TODO: Only load if not already sourced
-    source /usr/local/share/chruby/chruby.sh
+    if (command -v chruby > /dev/null);
+    then
+    else
+        source /usr/local/share/chruby/chruby.sh
+    fi
     echo "      issueing: \033[5;${color}mchruby ${current_ruby}\033[0m"
     chruby $1
 }
