@@ -44,3 +44,6 @@ if [[ -a ${HOMEBREW_PREFIX}/opt/asdf/asdf.sh ]]
 then
   source /opt/homebrew/opt/asdf/asdf.sh
 fi
+
+# Try out [atuin](https://github.com/ellie/atuin)
+eval "$(atuin init zsh)"
