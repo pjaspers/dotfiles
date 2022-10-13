@@ -4,18 +4,23 @@ require 'optparse'
 require "uri"
 require "net/http"
 require "json"
-Options = Struct.new(:hub, :activity, :device)
+Options = Struct.new(:hub, :activity, :device, keyword_init: true)
 
-# Control Harmony using the CLI, requires [Harmony API](https://github.com/maddox/harmony-api) to be running
-# on something, then change the IP here.
+# Control Harmony using the CLI, requires homeassistant with a functioning Remote set up
 
-VERSION='0.0.1'
+HASS_IP="100.74.48.103"
+HA_TELENET=23576662
+HA_LG=65335294
+HA_ATV=58438469
+
+VERSION='0.0.2'
 VERSION_NAME='it-me-piek'
-HARMONY_API_URL="http://192.168.1.167:8282"
+HARMONY_API_URL="http://#{HASS_IP}:8123"
+HARMONY_CONF = JSON.parse(DATA.read)
 
 class Parser
   def self.parse(options)
-    args = Options.new("world")
+    args = Options.new(hub: "piek")
 
     opt_parser = OptionParser.new do |opts|
       opts.banner = "Usage: piek [options]"
@@ -24,13 +29,23 @@ class Parser
         args.hub = le_hub
       end
 
-      opts.on("-aActivity", "--activity=Activity", "Activity to use") do |le_activity|
-        puts le_activity
-        args.activity = le_activity
+      opts.on("-aACTIVITY", "--change-activity=ACTIVITY", "Acitivty to use") do |activity|
+        activity_names = HARMONY_CONF["Activities"].values
+        found = (HARMONY_CONF["Activities"].detect{|k,v| v =~ /#{activity}/i} || []).first.to_s
+        # Only here to raise the key error
+        HARMONY_CONF["Activities"].fetch(found)
+        args.activity = found
+      rescue KeyError
+        puts "Needs to be one of: #{activity_names}"
       end
 
-      opts.on("-d", "--device", "Device to use") do |le_device|
-        args.actiity = le_device
+      opts.on("-dDevice", "--device=Device", "Device to use") do |le_device|
+        device_names = HARMONY_CONF["Devices"].keys
+        name = device_names.detect{|s| s.downcase =~ /#{le_device}/}
+
+        args.device = HARMONY_CONF["Devices"].fetch(name)["id"]
+      rescue KeyError
+        puts "Needs to be one of: #{device_names}"
       end
 
       opts.on("-h", "--help", "Prints this help") do
@@ -47,41 +62,50 @@ end
 options = Parser.parse(ARGV)
 
 class PiekAPI
-  def initialize(base_url)
+  def initialize(base_url:, hass_token:, entity_id: "remote.piek")
     @base_url = base_url
+    @hass_token = hass_token
+    @entity_id = entity_id
   end
 
   def hub
     "piek"
   end
 
-  def status
-    do_request get_request("/hubs/#{hub}/status")
-  end
-
-  def hubs
-    do_request get_request("/hubs")
-  end
-
-  def commands
-    do_request get_request("/hubs/#{hub}/activities/watch-tv/commands")
-  end
-
-  def activities
-    do_request get_request("/hubs/#{hub}/activities")
-  end
-
   def devices
-    do_request get_request("/hubs/#{hub}/devices")
+
   end
 
-  def send_command(command)
-    do_request post_request("/hubs/#{hub}/commands/#{command}")
+  # https://www.home-assistant.io/integrations/harmony/
+  #
+  # Turn off all devices that were switched on from the start of the current activity.
+  def turn_off
+    do_request post_request("/api/services/remote/turn_off")
+  end
+
+  # Start an activity. Will start the default activity from
+  # configuration.yaml if no activity is specified. The specified
+  # activity can either be the activity name or the activity ID from the
+  # configuration file written to your Home Assistant configuration
+  # directory.
+  def turn_on(activity:)
+    do_request post_request("/api/services/remote/turn_on", {
+                              entity_id: @entity_id,
+                              activity: activity
+                            })
+  end
+
+  def send_command(commands:, device:)
+    do_request post_request("/api/services/remote/send_command", {
+                              entity_id: @entity_id,
+                              device: device,
+                              command: Array(commands)
+                            })
   end
 
   def do_request(request)
     response = connection.request(request)
-    parsed_response = JSON.parse(response.body)
+    parsed_response = JSON.parse(response.body) rescue response.body
     parsed_response
   end
 
@@ -90,6 +114,8 @@ class PiekAPI
     uri.query = URI.encode_www_form(params)
     request = Net::HTTP::Get.new(uri)
     request.add_field("Content-Type", "application/json")
+    request.add_field("Accept", "application/json")
+    request.add_field("Authorization", "Bearer #{@hass_token}")
     request
   end
 
@@ -99,6 +125,9 @@ class PiekAPI
     uri.query = URI.encode_www_form(params)
     request = Net::HTTP::Post.new(uri)
     request.add_field("Content-Type", "application/json")
+    request.add_field("Accept", "application/json")
+    request.add_field("Authorization", "Bearer #{@hass_token}")
+    request.body = JSON.dump(params)
     request
   end
 
@@ -109,7 +138,7 @@ class PiekAPI
     @http
   end
 end
-require "pry"
+
 _height, width = `stty size`.scan(/\d+/).map(&:to_i)
 Signal.trap "SIGWINCH" do
   _height, width = `stty size`.scan(/\d+/).map(&:to_i)
@@ -124,7 +153,29 @@ def magic(r, cols = 2)
   first.zip(*arrs)
 end
 magic(%w(o hai there dotter ino))
-def print_info(width, data)
+
+def print_info_a(width, data)
+  padding = 2
+  data ||= {}
+  max_label = data.max_by {|r| r.length}.length
+  onewidth = max_label + padding + 5
+  columns = width/onewidth
+  columns = 1 if columns < 1
+  extra_padding = ((width % onewidth)/columns - 2*padding).clamp(0,10)
+
+  magic(data.sort, columns).each do |arr|
+    values = arr.compact.inject([]) do |result, r|
+      label = r
+      s = "\e[1m%s\e[0m%s" % [label.ljust(max_label), " " * padding]
+      result << s
+      result
+    end
+
+    puts values.join(" " * (padding+extra_padding))
+  end
+end
+
+def print_info_h(width, data)
   padding = 2
   data ||= {}
   max_slug = data.max_by {|r| r["slug"].length}["slug"].length
@@ -146,28 +197,255 @@ def print_info(width, data)
   end
 end
 
-api = PiekAPI.new(HARMONY_API_URL)
+api = PiekAPI.new(base_url: HARMONY_API_URL, hass_token: ENV.fetch("HASS_TOKEN"))
+# api = PiekAPI.new(base_url: "https://requestbin.io/1n3kmnx1", hass_token: ENV.fetch("HASS_TOKEN"))
 
-case ARGV.first
-when /status/
-  puts "=== #{api.hub.capitalize}"
-  response = api.status
-  puts "Off: #{response["off"]}"
-  puts "Current activity: #{response["current_activity"]["label"]}"
-  puts "Commands:"
-  print_info width, response["activity_commands"]
-when /activities/
-  puts "=== #{api.hub.capitalize}"
-  print_info(width, api.activities["activities"])
-when /devices/
-  puts "=== #{api.hub.capitalize}"
-  print_info(width, api.devices["devices"])
-when /commands/
-  puts "=== #{api.hub.capitalize}"
-  print_info(width, api.commands["commands"])
-when /hubs/
-  puts "=== #{api.hub.capitalize}"
-  puts api.hubs["hubs"].join("\n")
+if options.activity
+  puts api.turn_on(activity: options.activity)
+elsif options.device
+  commands = ARGV
+  available_commands = HARMONY_CONF["Devices"].each_value.detect {|h| h["id"] == options.device}["commands"].map(&:downcase)
+  unknown_commands = commands - available_commands
+
+  if unknown_commands.any?
+    puts <<~STR
+These mean NOTHING to me: #{unknown_commands.join(",")}
+You should be using one of these:
+
+STR
+    print_info_a(width, available_commands)
+  else
+    puts api.send_command(device: options.device, commands: ARGV)
+  end
 else
-  puts PiekAPI.new(HARMONY_API_URL).send_command(ARGV.first)["message"]
+  puts "You need to specify a device, with the -d flag"
+  puts "One of these"
+  print_info_a(width, HARMONY_CONF["Devices"].keys)
 end
+
+__END__
+
+{
+    "Activities": {
+        "-1": "PowerOff",
+        "30890611": "Watch Smart TV",
+        "30897620": "Watch TV",
+        "36333764": "Apple Teevee",
+        "48943182": "Gaming"
+    },
+    "Devices": {
+        "Apple TV": {
+            "commands": [
+                "VolumeDown",
+                "VolumeUp",
+                "DirectionDown",
+                "DirectionLeft",
+                "DirectionRight",
+                "DirectionUp",
+                "Select",
+                "Stop",
+                "Play",
+                "Rewind",
+                "Pause",
+                "FastForward",
+                "SkipBack",
+                "SkipForward",
+                "Menu",
+                "Back",
+                "Home"
+            ],
+            "id": "58438469"
+        },
+        "LG TV": {
+            "commands": [
+                "PowerOff",
+                "PowerOn",
+                "PowerToggle",
+                ".",
+                "-",
+                "0",
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7",
+                "8",
+                "9",
+                "Mute",
+                "VolumeDown",
+                "VolumeUp",
+                "ChannelPrev",
+                "ChannelDown",
+                "ChannelUp",
+                "DirectionDown",
+                "DirectionLeft",
+                "DirectionRight",
+                "DirectionUp",
+                "OK",
+                "Stop",
+                "Play",
+                "Rewind",
+                "Pause",
+                "FastForward",
+                "Record",
+                "Back",
+                "Teletext",
+                "List",
+                "PictureMode",
+                "SoundMode",
+                "Sleep",
+                "Green",
+                "Red",
+                "Blue",
+                "Yellow",
+                "Guide",
+                "Info",
+                "Exit",
+                "Aspect",
+                "PictureMode",
+                "Netflix",
+                "Settings",
+                "Amazon",
+                "Home",
+                "InputAv1",
+                "InputComponent1",
+                "InputHdmi1",
+                "InputHdmi2",
+                "InputHdmi3",
+                "InputHdmi4",
+                "InputNext",
+                "InputTv",
+                "In-Start",
+                "In-Stop",
+                "ServiceMenu",
+                "Simplink",
+                "SmartMenu",
+                "SportMode"
+            ],
+            "id": "50973046"
+        },
+        "LG TV (2)": {
+            "commands": [
+                "PowerOff",
+                "PowerOn",
+                "PowerToggle",
+                ".",
+                "-",
+                "0",
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7",
+                "8",
+                "9",
+                "Mute",
+                "VolumeDown",
+                "VolumeUp",
+                "ChannelPrev",
+                "ChannelDown",
+                "ChannelUp",
+                "DirectionDown",
+                "DirectionLeft",
+                "DirectionRight",
+                "DirectionUp",
+                "OK",
+                "Stop",
+                "Play",
+                "Rewind",
+                "Pause",
+                "FastForward",
+                "Record",
+                "Back",
+                "Teletext",
+                "List",
+                "PictureMode",
+                "SoundMode",
+                "Sleep",
+                "Green",
+                "Red",
+                "Blue",
+                "Yellow",
+                "Guide",
+                "Info",
+                "Exit",
+                "Aspect",
+                "PictureMode",
+                "Netflix",
+                "Settings",
+                "Amazon",
+                "Home",
+                "InputAv1",
+                "InputComponent1",
+                "InputHdmi1",
+                "InputHdmi2",
+                "InputHdmi3",
+                "InputHdmi4",
+                "InputNext",
+                "InputTv",
+                "In-Start",
+                "In-Stop",
+                "ServiceMenu",
+                "Simplink",
+                "SmartMenu",
+                "SportMode"
+            ],
+            "id": "65335294"
+        },
+        "Telenet DVR": {
+            "commands": [
+                "PowerToggle",
+                "0",
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7",
+                "8",
+                "9",
+                "Clear",
+                "Mute",
+                "VolumeDown",
+                "VolumeUp",
+                "ChannelDown",
+                "ChannelUp",
+                "DirectionDown",
+                "DirectionLeft",
+                "DirectionRight",
+                "DirectionUp",
+                "Ok",
+                "Stop",
+                "Play",
+                "Rewind",
+                "Pause",
+                "FastForward",
+                "Record",
+                "Return",
+                "Menu",
+                "Back",
+                "Teletext",
+                "Green",
+                "Red",
+                "Blue",
+                "Yellow",
+                "Guide",
+                "Exit",
+                "Delete",
+                "-/--",
+                "Communication",
+                "Extra",
+                "Help",
+                "Home",
+                "InputNext",
+                "Library"
+            ],
+            "id": "23576662"
+        }
+    }
+}
