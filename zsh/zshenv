@@ -34,6 +34,7 @@ PATH="${PATH}:${HOME}/.cargo/bin"                            # rust
 PATH="${PATH}:${HOME}/.yarn/bin"                             # yarn
 PATH="${PATH}:${HOME}/.config/yarn/global/node_modules/.bin" # yarn
 PATH="${PATH}:${HOME}/.local/bin"                            # pipx
+PATH="${PATH}:${DOTFILES}/lisp/bin"                          # lisp
 
 # Pretty much took over from: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
 UNAME_MACHINE="$(/usr/bin/uname -m)"
@@ -48,7 +49,8 @@ else
 fi
 
 export PATH="${HOMEBREW_PREFIX}/bin:${HOMEBREW_PREFIX}/sbin${PATH+:$PATH}";
-export MANPATH="${HOMEBREW_PREFIX}/share/man${MANPATH+:$MANPATH}:";
+# Don't set the manpath, it stops man from finding man pages next to dirs in your path
+# export MANPATH="${HOMEBREW_PREFIX}/share/man${MANPATH+:$MANPATH}:";
 export INFOPATH="${HOMEBREW_PREFIX}/share/info:${INFOPATH:-}";
 
 # This sets up where the [pj.plugin.zsh](https://github.com/robbyrussell/oh-my-zsh/blob/96e4e5dd032d2df75f87d5b3e5594d527c655b16/plugins/pj/pj.plugin.zsh) so I can easily jump to a project.
