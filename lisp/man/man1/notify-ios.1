@@ -1,0 +1,37 @@
+.TH NOTIFY\-IOS 1
+.SH NAME
+notify\-ios \- send message to iOS
+.SH SYNOPSIS
+.B notify\-ios
+.R [OPTIONS] TITLE
+.SH DESCRIPTION
+Notify your iPhone through hass
+.SH OPTIONS
+.TP
+.BR \-h ", "\-\-help
+display help and exit
+.TP
+.BR \-m " " \fIMESSAGE\fR ", "\-\-message=\fIMESSAGE\fR
+message
+.TP
+.BR \-d ", "\-\-debug
+Enable the Lisp debugger.
+.TP
+.BR \-D ", "\-\-no-debug
+Disable the Lisp debugger (the default).
+.SH EXAMPLES
+Send 'ohai':
+.PP
+.nf
+.RS
+notify-ios ohai
+.RE
+.fi
+.PP
+Send 'ohai' with longer message:
+.PP
+.nf
+.RS
+notify-ios --message='thing and other thing' ohai
+.RE
+.fi
