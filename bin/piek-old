@@ -139,7 +139,7 @@ class PiekAPI
   end
 end
 
-_height, width = `stty size`.scan(/\d+/).map(&:to_i)
+_height, width = `stty siz`.scan(/\d+/).map(&:to_i)
 Signal.trap "SIGWINCH" do
   _height, width = `stty size`.scan(/\d+/).map(&:to_i)
   puts width
