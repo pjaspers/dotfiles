@@ -1,0 +1,28 @@
+#! /usr/bin/env ruby
+number = "0474/82 45 38"
+number = "0497 48 25 94"
+number.gsub!(/[^0-9]/, "")
+puts number
+lut = {
+  2 => "abc",
+  3 => "def",
+  4 => "ghi",
+  5 => "jkl",
+  6 => "mno",
+  7 => "pqrs",
+  8 => "tuv",
+  9 => "wxyz"
+}
+
+chars = number.chars.collect do |char|
+  lut.fetch(char.to_i, char)
+end
+
+ra = chars.inject([chars.shift.chars]) do |r, e|
+  r = r.product(e.chars)
+  r
+end
+
+puts ra.uniq.count
+
+puts chars.join("-")
