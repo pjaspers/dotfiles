@@ -101,18 +101,21 @@
 (defparameter *ui*
   (adopt:make-interface
     :name "piek"
-    :usage "[-t TITLE -m MESSAGE]"
-    :summary "Send message to your iPhone"
-    :help "Notify your iPhone through hass"
-    :contents (list *help* *name*)))
+    :usage "[-d DEVICE COMMAND]"
+    :summary "control tv through harmony through hass"
+    :help "Control the TV, or Apple TV, or Telenet"
+    :contents (list *help* *name*)
+    :examples '(("Volume Down TV':" . "piek -d 50973046 volumedown")
+                ("Pause Apple TV:" . "piek -d 58438469 pause")
+                ("Pause Telenet:" . "piek -d 23576662 pause"))))
 
 (defun toplevel ()
   (handler-case
       (multiple-value-bind (arguments options) (adopt:parse-options *ui*)
         (when (gethash 'help options)
           (adopt:print-help-and-exit *ui*))
-        ;; (unless (null arguments)
-        ;;   (error "Unrecognized command-line arguments: ~S" arguments))
+        (if (null arguments)
+          (adopt:print-help-and-exit *ui*))
         ;; (run (gethash 'device options))
         ;; (format t "args: ~a options: ~a" arguments options)
         (send-command :device (gethash 'device options) :commands arguments)

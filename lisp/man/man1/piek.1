@@ -1,11 +1,11 @@
 .TH PIEK 1
 .SH NAME
-piek \- Send message to your iPhone
+piek \- control tv through harmony through hass
 .SH SYNOPSIS
 .B piek
-.R [\-t TITLE \-m MESSAGE]
+.R [\-d DEVICE COMMAND]
 .SH DESCRIPTION
-Notify your iPhone through hass
+Control the TV, or Apple TV, or Telenet
 .SH OPTIONS
 .TP
 .BR \-h ", "\-\-help
@@ -13,3 +13,27 @@ display help and exit
 .TP
 .BR \-d " " \fIDEVICE\fR ", "\-\-device=\fIDEVICE\fR
 say hello to NAME (default 50973046)
+.SH EXAMPLES
+Volume Down TV':
+.PP
+.nf
+.RS
+piek -d 50973046 volumedown
+.RE
+.fi
+.PP
+Pause Apple TV:
+.PP
+.nf
+.RS
+piek -d 58438469 pause
+.RE
+.fi
+.PP
+Pause Telenet:
+.PP
+.nf
+.RS
+piek -d 23576662 pause
+.RE
+.fi
