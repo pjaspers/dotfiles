@@ -12,13 +12,13 @@ Control the TV, or Apple TV, or Telenet
 display help and exit
 .TP
 .BR \-d " " \fIDEVICE\fR ", "\-\-device=\fIDEVICE\fR
-say hello to NAME (default 50973046)
+send command to device(default lg)
 .SH EXAMPLES
 Volume Down TV':
 .PP
 .nf
 .RS
-piek -d 50973046 volumedown
+piek -d lg volumedown
 .RE
 .fi
 .PP
@@ -26,7 +26,7 @@ Pause Apple TV:
 .PP
 .nf
 .RS
-piek -d 58438469 pause
+piek -d apple pause
 .RE
 .fi
 .PP
@@ -34,6 +34,14 @@ Pause Telenet:
 .PP
 .nf
 .RS
-piek -d 23576662 pause
+piek -d telenet pause
+.RE
+.fi
+.PP
+Show all commands of a device:
+.PP
+.nf
+.RS
+piek -d lg commands
 .RE
 .fi

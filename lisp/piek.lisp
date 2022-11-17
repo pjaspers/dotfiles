@@ -27,6 +27,46 @@
 
 (defun jso-keys (jso) (mapcar-jso (lambda (k v) (declare (ignore v)) k) jso))
 
+(defun list-device-names(conf)
+  (jso-keys (st-json:getjso "Devices" conf)))
+
+(defun list-activities(conf)
+  (jso-keys (st-json:getjso "Activities" conf)))
+
+;; (assoc "-1" (slot-value (st-json:getjso "Activities" *harmony-conf*) 'st-json::alist) :test #'string=)
+;; (mapcar #'cdr (slot-value (st-json:getjso "Activities" *harmony-conf*) 'st-json::alist))
+;; (mapcar #'car (slot-value (st-json:getjso "Activities" *harmony-conf*) 'st-json::alist))
+
+(defstruct device name id commands)
+(defstruct activity name id)
+(defun json->device(name jso)
+  (let ((commands (st-json:getjso "commands" jso))
+         (id (st-json:getjso "id" jso)))
+    (make-device :name name :id id :commands commands)
+    ))
+
+(defun devices-from-conf(conf)
+  (let ((thing nil))
+    (st-json:mapjso #'(lambda (k v)
+                        (push (json->device k v) thing)
+                        ) (st-json:getjso "Devices" *harmony-conf*))
+    thing))
+
+(defun devices()
+  (devices-from-conf *harmony-conf*)
+  )
+
+(defun device-with-id (id)
+  (find id (devices-from-conf *harmony-conf*) :key 'device-id :test 'equal))
+
+(defun device-with-name (name)
+  (find name (devices-from-conf *harmony-conf*) :key 'device-name :test 'equal))
+
+(defun device-matches-name (name)
+  (let ((scanner (cl-ppcre:create-scanner name :case-insensitive-mode t)))
+    (find name (devices) :test #'(lambda (a b) (cl-ppcre:scan scanner (device-name b))))
+    ))
+
 (defun device-name-from-id(identifier jso)
   (cl-ppcre:scan "lg" (string-downcase "LG"))
   ;; (mapcar #'(lambda(k) (st:json:getjso* (format nil "Devices.~a.id" k) *harmony-conf*)) names)
@@ -89,13 +129,13 @@
     :short #\h
     :reduce (constantly t)))
 
-(defparameter *name*
+(defparameter *device*
   (adopt:make-option 'device
-    :help (format nil "say hello to NAME (default ~A)" "50973046")
+    :help (format nil "send command to device(default ~A)" "lg")
     :long "device"
     :short #\d
     :parameter "DEVICE"
-    :initial-value "50973046"
+    :initial-value "lg"
     :reduce #'adopt:last))
 
 (defparameter *ui*
@@ -104,11 +144,16 @@
     :usage "[-d DEVICE COMMAND]"
     :summary "control tv through harmony through hass"
     :help "Control the TV, or Apple TV, or Telenet"
-    :contents (list *help* *name*)
-    :examples '(("Volume Down TV':" . "piek -d 50973046 volumedown")
-                ("Pause Apple TV:" . "piek -d 58438469 pause")
-                ("Pause Telenet:" . "piek -d 23576662 pause"))))
+    :contents (list *help* *device*)
+    :examples '(("Volume Down TV':" . "piek -d lg volumedown")
+                ("Pause Apple TV:" . "piek -d apple pause")
+                ("Pause Telenet:" . "piek -d telenet pause")
+                ("Show all commands of a device:" . "piek -d lg commands"))))
 
+(defun print-available-commands(device)
+  (format t "~A" (device-commands device)))
+
+;; todo: also support direct id for the device
 (defun toplevel ()
   (handler-case
       (multiple-value-bind (arguments options) (adopt:parse-options *ui*)
@@ -118,6 +163,8 @@
           (adopt:print-help-and-exit *ui*))
         ;; (run (gethash 'device options))
         ;; (format t "args: ~a options: ~a" arguments options)
-        (send-command :device (gethash 'device options) :commands arguments)
-        )
+        (let ((device (device-matches-name (gethash 'device options))))
+          (cond
+            ((equal "commands" (car arguments)) (print-available-commands device))
+            (t (send-command :device (device-id device) :commands arguments)))))
     (error (c) (adopt:print-error-and-exit c))))
