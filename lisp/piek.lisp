@@ -6,9 +6,9 @@
   (:export :toplevel :*ui*))
 
 (in-package :piek)
-(setf drakma:*header-stream* *standard-output*)
 (defvar *api-token* (uiop:getenv "HASS_TOKEN"))
 (defvar *hass-url* (uiop:getenv "HASS_IP"))
+(defparameter *debug-is-on* nil)
 
 (defvar *harmony-conf* (with-open-file (stream "harmony.conf")
                          (st-json:read-json stream)))
@@ -97,15 +97,28 @@
   (st-json:mapjso #'(lambda (k v) (format t "K: ~a V: ~a" k v)) *harmony-conf*)
   (type-of (st-json:getjso "Devices" *harmony-conf*))
   )
+
+(defun debug-info-send-command(hass-url entity-id device-id commands)
+  (format t "
+/api/service/remote/send_command
+
+  [hass-url] ~A
+  [device]   ~A
+  [commands] ~A
+
+" *hass-url* entity-id device-id commands))
+
 ;; http://100.74.48.103:8123/api/services/remote/send_command
-(defun send-command(&key (entity-id "remote.piek") (device "50973046") (commands ()))
-  (format t "entity: ~a device: ~a commands: ~a" entity-id device commands)
+(defun send-command(&key (entity-id "remote.piek") (device) (commands ()))
+  (if *debug-is-on*
+      (debug-info-send-command *hass-url* entity-id (device-id device) commands))
+
   (multiple-value-bind (body status headers uri stream needs-close reason)
       (drakma:http-request (concatenate 'string "http://" *hass-url* ":8123/api/services/remote/send_command")
                            :content (st-json:write-json-to-string
                                      (st-json:jso
                                       "entity_id" entity-id
-                                      "device" device
+                                      "device" (device-id device)
                                       "command" commands))
                            :content-type "application/json"
                            :method :post
@@ -129,6 +142,12 @@
     :short #\h
     :reduce (constantly t)))
 
+(adopt:defparameters (*option-debug* *option-no-debug*)
+  (adopt:make-boolean-options 'debug
+    :long "debug"
+    :help "Enable the Lisp debugger."
+    :help-no "Disable the Lisp debugger (the default)."))
+
 (defparameter *device*
   (adopt:make-option 'device
     :help (format nil "send command to device(default ~A)" "lg")
@@ -144,7 +163,7 @@
     :usage "[-d DEVICE COMMAND]"
     :summary "control tv through harmony through hass"
     :help "Control the TV, or Apple TV, or Telenet"
-    :contents (list *help* *device*)
+    :contents (list *help* *device* *option-debug* *option-no-debug*)
     :examples '(("Volume Down TV':" . "piek -d lg volumedown")
                 ("Pause Apple TV:" . "piek -d apple pause")
                 ("Pause Telenet:" . "piek -d telenet pause")
@@ -155,16 +174,22 @@
 
 ;; todo: also support direct id for the device
 (defun toplevel ()
+  (sb-ext:disable-debugger)
   (handler-case
       (multiple-value-bind (arguments options) (adopt:parse-options *ui*)
+        (when (gethash 'debug options)
+          (sb-ext:enable-debugger)
+          (setf drakma:*header-stream* *standard-output*)
+          (setf *debug-is-on* t))
         (when (gethash 'help options)
           (adopt:print-help-and-exit *ui*))
         (if (null arguments)
-          (adopt:print-help-and-exit *ui*))
+            (adopt:print-help-and-exit *ui*))
         ;; (run (gethash 'device options))
         ;; (format t "args: ~a options: ~a" arguments options)
         (let ((device (device-matches-name (gethash 'device options))))
           (cond
             ((equal "commands" (car arguments)) (print-available-commands device))
-            (t (send-command :device (device-id device) :commands arguments)))))
+            ((null device) (format t "Unknown device, should be one of : ~{ ~a ~}" (list-device-names *harmony-conf*)))
+            (t (send-command :device device :commands arguments)))))
     (error (c) (adopt:print-error-and-exit c))))
