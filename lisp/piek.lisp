@@ -13,6 +13,15 @@
 (defvar *harmony-conf* (with-open-file (stream "harmony.conf")
                          (st-json:read-json stream)))
 
+
+(define-condition user-error (error) ())
+
+(define-condition unknown-command(user-error)
+  ((used-command :initarg :used-command)
+   (available :initarg :available))
+  (:report (lambda (c s)
+             (format s "Unsupported command: ~A, should be one of ~A" (slot-value c 'used-command) (slot-value c 'available)))))
+
 (defun ensure-response-string (response)
   (etypecase response
     (string response)
@@ -112,7 +121,11 @@
 (defun send-command(&key (entity-id "remote.piek") (device) (commands ()))
   (if *debug-is-on*
       (debug-info-send-command *hass-url* entity-id (device-id device) commands))
+  (unless (every (lambda(x) (position x (device-commands device) :test #'(lambda(a b) (equal (string-downcase a) (string-downcase b))))) commands)
+    (error 'unknown-command :available (device-commands device) :used-command commands))
 
+
+  (position "poweron" (device-commands device) :test #'(lambda(a b) (equal (string-downcase a) (string-downcase b))))
   (multiple-value-bind (body status headers uri stream needs-close reason)
       (drakma:http-request (concatenate 'string "http://" *hass-url* ":8123/api/services/remote/send_command")
                            :content (st-json:write-json-to-string
@@ -185,11 +198,9 @@
           (adopt:print-help-and-exit *ui*))
         (if (null arguments)
             (adopt:print-help-and-exit *ui*))
-        ;; (run (gethash 'device options))
-        ;; (format t "args: ~a options: ~a" arguments options)
         (let ((device (device-matches-name (gethash 'device options))))
           (cond
             ((equal "commands" (car arguments)) (print-available-commands device))
-            ((null device) (format t "Unknown device, should be one of : ~{ ~a ~}" (list-device-names *harmony-conf*)))
+            ((null device) (format t "Unknown device, should be one of: ~{ ~a ~}" (list-device-names *harmony-conf*)))
             (t (send-command :device device :commands arguments)))))
     (error (c) (adopt:print-error-and-exit c))))
