@@ -85,7 +85,6 @@
   (devices-from-conf *harmony-conf*)
   )
 
-
 (defmacro with-key(kind key value)
   (let* ((plural (cond((equal kind "device") "devices") ((equal kind "activity") "activities")))
          (lookup (intern (string-upcase (concatenate 'string (format nil "~A" plural) "-from-conf"))))
@@ -257,9 +256,10 @@
         (when (gethash 'activity options)
           (handle-activity arguments (gethash 'activity options))
           (adopt:exit))
+        (if (null arguments)
+            (adopt:print-help-and-exit *ui*))
         (when (gethash 'device options)
           (handle-device arguments (gethash 'device options))
           (adopt:exit))
-        (if (null arguments)
-            (adopt:print-help-and-exit *ui*)))
+        )
     (error (c) (adopt:print-error-and-exit c))))
