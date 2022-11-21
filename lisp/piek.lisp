@@ -18,10 +18,11 @@
 (define-condition user-error (error) ())
 
 (define-condition unknown-command(user-error)
-  ((used-command :initarg :used-command)
+  ((used-commands :initarg :used-commands)
+   (matched-commands :initarg :matched-commands)
    (available :initarg :available))
   (:report (lambda (c s)
-             (format s "Unsupported command: ~A, should be one of ~A" (slot-value c 'used-command) (slot-value c 'available)))))
+             (format s "Unsupported command: ~A (matched to ~A), should be one of ~A" (slot-value c 'used-commands) (slot-value c 'matched-commands) (slot-value c 'available)))))
 
 (define-condition unknown-device(user-error)
   ((used-device :initarg :used-device)
@@ -106,6 +107,7 @@
     (find name objects :test #'(lambda (a b) (declare (ignore a)) (cl-ppcre:scan scanner (funcall accessor b))))
     ))
 
+
 (defun device-with-id (id) (with-key "device" "id" id))
 (defun device-with-name (name) (with-key "device" "name" name))
 
@@ -125,30 +127,41 @@
 
 " hass-url entity-id device-id commands))
 
+(defun find-match(collection value)
+  (let ((scanner (cl-ppcre:create-scanner value :case-insensitive-mode t)))
+    (find value collection :test #'(lambda (a b) (declare (ignore a)) (cl-ppcre:scan scanner b)))))
+
+(defun match-commands(commands available-commands)
+  (mapcar #'(lambda(command) (find-match available-commands command)) commands))
+
+
 ;; http://100.74.48.103:8123/api/services/remote/send_command
 (defun send-command(&key (entity-id "remote.piek") (device) (commands ()))
-  (if *debug-is-on*
-      (debug-info-send-command *hass-url* entity-id (device-id device) commands))
-  (unless (every (lambda(x) (position x (device-commands device) :test #'(lambda(a b) (equal (string-downcase a) (string-downcase b))))) commands)
-    (error 'unknown-command :available (device-commands device) :used-command commands))
+  (let* ((available-commands (device-commands device))
+         (matched-commands (match-commands commands available-commands)))
+    (unless (notany #'null matched-commands)
+      (error 'unknown-command :available (device-commands device) :used-commands commands :matched-commands matched-commands))
 
+    (if *debug-is-on*
+        (debug-info-send-command *hass-url* entity-id (device-id device) matched-commands))
 
-  (position "poweron" (device-commands device) :test #'(lambda(a b) (equal (string-downcase a) (string-downcase b))))
-  (multiple-value-bind (body status uri reason)
-      (drakma:http-request (concatenate 'string "http://" *hass-url* ":8123/api/services/remote/send_command")
-                           :content (st-json:write-json-to-string
-                                     (st-json:jso
-                                      "entity_id" entity-id
-                                      "device" (device-id device)
-                                      "command" commands))
-                           :content-type "application/json"
-                           :method :post
-                           :additional-headers (list (cons "Authorization" (format nil "Bearer ~a" *api-token*))))
-    (setf body (ensure-response-string body))
-    (if (<= 200 status 299)
-        (st-json:read-json body)
-        (error "Received ~D ~A from ~A: ~A" status reason uri body))
-    ))
+    (multiple-value-bind (body status uri reason)
+        (drakma:http-request (concatenate 'string "http://" *hass-url* ":8123/api/services/remote/send_command")
+                             :content (st-json:write-json-to-string
+                                       (st-json:jso
+                                        "entity_id" entity-id
+                                        "device" (device-id device)
+                                        "command" matched-commands))
+                             :content-type "application/json"
+                             :method :post
+                             :additional-headers (list (cons "Authorization" (format nil "Bearer ~a" *api-token*))))
+      (setf body (ensure-response-string body))
+      (if (<= 200 status 299)
+          (st-json:read-json body)
+          (error "Received ~D ~A from ~A: ~A" status reason uri body))
+      )
+    )
+  )
 
 (defun debug-info-send-activity(hass-url entity-id activity-id)
   (format t "
