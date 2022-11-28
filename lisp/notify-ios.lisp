@@ -76,7 +76,7 @@
   (if *debug-is-on*
       (format t "JSON: ~A" (json-message title message)))
   (multiple-value-bind (body status headers uri stream needs-close reason)
-      (drakma:http-request (concatenate 'string "http://" (hass-ip) ":8123/api/services/notify/mobile_app_proteus")
+      (drakma:http-request (concatenate 'string "http://" (hass-ip) ":8123/api/services/notify/mobile_app_oranje")
                            :content (json-message title message)
                            :content-type "application/json"
                            :method :post
@@ -104,7 +104,7 @@
           (cond
             ((gethash 'help options) (adopt:print-help-and-exit *ui*))
             (t (send-command
-                :title arguments
+                :title (car arguments)
                 :message (gethash 'message options))))
         (user-error (e) (adopt:print-error-and-exit e))))))
 
