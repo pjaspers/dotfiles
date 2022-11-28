@@ -350,7 +350,7 @@ yellowgreen	#9ACD32	154 205 50
         (if (gethash 'full options)
             (setf *use-extended-description* t))
         (when (gethash 'random options)
-          (print-css-color (random-css-color) t)
+          (print-css-color (random-css-color))
           (adopt:exit))
         (handle-arguments arguments)
         )
