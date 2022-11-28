@@ -8,6 +8,9 @@
 (in-package :css-color)
 (define-condition user-error (error) ())
 
+(defparameter *use-shell-format* nil)
+(defparameter *use-extended-description* nil)
+
 (defun css-colors()
   (let ((result '()))
     (with-input-from-string (s (raw-css-colors))
@@ -224,6 +227,22 @@ yellowgreen	#9ACD32	154 205 50
                      :short #\h
                      :reduce (constantly t)))
 
+(defparameter *shell*
+  (adopt:make-option 'shell
+                     :long "shell"
+                     :short #\s
+                     :help "output in shell format"
+                     :initial-value nil
+                     :reduce (constantly t)))
+
+(defparameter *full*
+  (adopt:make-option 'full
+                     :long "full"
+                     :short #\f
+                     :help "show name, hex and rgb"
+                     :initial-value nil
+                     :reduce (constantly t)))
+
 (defparameter *random*
   (adopt:make-option 'random
                      :long "random"
@@ -234,11 +253,11 @@ yellowgreen	#9ACD32	154 205 50
 
 (defparameter *ui*
   (adopt:make-interface
-   :name "css-colors"
-   :usage "css-colors --random"
+   :name "css-color"
+   :usage "[COLOR OR NONE]"
    :summary "get css colors"
    :help "List all named css colors"
-   :contents (list *help* *random*)))
+   :contents (list *help* *random* *shell* *full*)))
 
 (defun ansi-color-start (color)
   ;; 38 for foreground
@@ -293,15 +312,12 @@ yellowgreen	#9ACD32	154 205 50
 
         contrasting-color)))
 
-(defun print-css-color(color &optional (full t))
-  (let ((full-description (format nil "~A ~A ~A" (css-color-name color) (css-color-hex color) (css-color-rgb color))))
-    (if full
-        (format t "~A~A~A~%"
-                (ansi-color-start color)
-                full-description
-                (ansi-color-end))
-        (format t "~a" (css-color-name color))))
-    )
+(defun print-css-color(color)
+  (let* ((full-description (format nil "~A ~A ~A" (css-color-name color) (css-color-hex color) (css-color-rgb color)))
+        (description (if *use-extended-description* full-description (css-color-name color))))
+    (if *use-shell-format*
+        (format t "~A~%" description)
+        (format t "~A~A~A~%" (ansi-color-start color) description (ansi-color-end)))))
 
 (defun colors-matching-name(name)
   (let ((scanner (cl-ppcre:create-scanner name :case-insensitive-mode t)))
@@ -323,14 +339,16 @@ yellowgreen	#9ACD32	154 205 50
       ((null input) (mapcar #'print-css-color (css-colors)))
       (t (mapcar #'print-css-color (colors-matching-name (car arguments)))))))
 
-(handle-arguments '("#ffffff"))
-
 (defun toplevel ()
   (sb-ext:disable-debugger)
   (handler-case
       (multiple-value-bind (arguments options) (adopt:parse-options-or-exit *ui*)
         (when (gethash 'help options)
           (adopt:print-help-and-exit *ui*))
+        (if (gethash 'shell options)
+            (setf *use-shell-format* t))
+        (if (gethash 'full options)
+            (setf *use-extended-description* t))
         (when (gethash 'random options)
           (print-css-color (random-css-color) t)
           (adopt:exit))
@@ -338,3 +356,7 @@ yellowgreen	#9ACD32	154 205 50
         )
 
     (user-error (e) (adopt:print-error-and-exit e))))
+;; todo
+;; - multiple arguments (so you can print a pallette)
+;; - support the full option
+;; - random names for all colors?
