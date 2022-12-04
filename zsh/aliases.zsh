@@ -57,3 +57,6 @@ alias daphne="WEBSCALE=1; aspell -d nl dump master | grep -E '[a-z]{4,}' | shuf 
 
 # Stolen from @to1ne, quick way to read news behind a paywall
 alias lire="links -http.fake-user-agent 'Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)'"
+
+# Easy access to the makemkv CLI
+alias makemkvcon='/Applications/MakeMKV.app/Contents/MacOS/./makemkvcon'
