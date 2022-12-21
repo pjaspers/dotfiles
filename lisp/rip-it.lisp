@@ -45,11 +45,11 @@
 
 (defparameter *min-length*
   (adopt:make-option 'min-length
-    :help (format nil "min-length to keep (default ~A)" "3000")
+    :help (format nil "min-length to keep, in minutes (default ~A)" "50")
     :long "min-length"
     :short #\l
     :parameter "MIN-LENGTH"
-    :initial-value "3000"
+    :initial-value "50"
     :reduce #'adopt:last))
 
 (defparameter *reference*
@@ -80,7 +80,7 @@
   (string-downcase (cl-ppcre:regex-replace-all "\\W" (cl-ppcre:regex-replace-all "\\s+" name "_") "")))
 
 (defun makemkv-command(&key disc min-length dir)
-  (format nil "makemkvcon --minlength=~a mkv disc:~a all ~a" min-length disc dir))
+  (format nil "makemkvcon --minlength=~a mkv disc:~a all ~a" (* min-length 60) disc dir))
 
 (defun notify-ios-command(&key title message)
   (format nil "notify-ios \"~A\" -m \"~A\"" title message))
@@ -96,15 +96,16 @@
   (multiple-value-bind (arguments options) (adopt:parse-options-or-exit *ui*)
     (cond
       ((gethash 'help options) (adopt:print-help-and-exit *ui*))
-      (t (let* ((title (make-title (car arguments) (gethash 'reference options)))
-                (path (format nil "~~/Movies/~a" title))
+      (t (let* ((title (car arguments))
+                (sanitized-title (make-title title (gethash 'reference options)))
+                (path (format nil "~~/Movies/~a/original" sanitized-title))
                 (makekmv (makemkv-command :disc (gethash 'disc-number options)
-                                          :min-length (gethash 'min-length options)
+                                          :min-length (parse-integer (gethash 'min-length options))
                                           :dir path))
                 (notify-ios (notify-ios-command :title title
-                                                :message "Done!"))
+                                                :message "Done"))
                 )
-           (format t "mkdir ~A && ~A && ~A && drutil eject" path makekmv notify-ios)
+           (format t "mkdir -p ~A && ~A && ~A && drutil eject" path makekmv notify-ios)
            )))
     ))
 
