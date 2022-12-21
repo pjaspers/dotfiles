@@ -17,24 +17,33 @@
 
 (define-condition user-error (error) ())
 
+(defun report-error (stream name given available)
+  (format stream "Unsupported ~a: ~a, should be one of:~%~{~a~}"
+          name
+          given
+          (loop for (x y z) on (sort available #'string<=) by 'cdddr
+                collecting (format nil "~{~18:a~}~%" (remove nil (list x y z))))
+          ))
+
 (define-condition unknown-command(user-error)
   ((used-commands :initarg :used-commands)
    (matched-commands :initarg :matched-commands)
    (available :initarg :available))
   (:report (lambda (c s)
-             (format s "Unsupported command: ~A (matched to ~A), should be one of ~A" (slot-value c 'used-commands) (slot-value c 'matched-commands) (slot-value c 'available)))))
+             (report-error s "commands" (slot-value c 'used-commands) (slot-value c 'available)))))
 
 (define-condition unknown-device(user-error)
   ((used-device :initarg :used-device)
    (available :initarg :available))
   (:report (lambda (c s)
-             (format s "Unsupported device: ~A, should be one of ~A" (slot-value c 'used-device) (slot-value c 'available)))))
+             (report-error s "device" (slot-value c 'used-device) (slot-value c 'available)))))
 
 (define-condition unknown-activity(user-error)
   ((used-activity :initarg :used-activity)
    (available :initarg :available))
   (:report (lambda (c s)
-             (format s "Unsupported device: ~A, should be one of ~A" (slot-value c 'used-activity) (slot-value c 'available)))))
+             (report-error  s "Activity" (slot-value c 'used-activity) (slot-value c 'available)))))
+
 
 (defun ensure-response-string (response)
   (etypecase response
@@ -244,8 +253,8 @@
 (defun handle-activity(arguments activity-name)
   (let ((activity (with-name-matches "activity" activity-name)))
     (cond
-      ((equal "list" (car arguments)) (print-available-activities))
       ((null activity) (error 'unknown-activity :available (mapcar #'activity-name (activities)) :used-activity activity-name))
+      ((equal "list" (car arguments)) (print-available-activities))
       (t (send-activity :activity activity)))))
 
 (defun handle-device(arguments device-name)
@@ -275,4 +284,4 @@
           (handle-device arguments (gethash 'device options))
           (adopt:exit))
         )
-    (error (c) (adopt:print-error-and-exit c))))
+    (error (c) (adopt:print-error-and-exit c :prefix "Such error => "))))
