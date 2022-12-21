@@ -35,6 +35,7 @@ PATH="${PATH}:${HOME}/.yarn/bin"                             # yarn
 PATH="${PATH}:${HOME}/.config/yarn/global/node_modules/.bin" # yarn
 PATH="${PATH}:${HOME}/.local/bin"                            # pipx
 PATH="${PATH}:${DOTFILES}/lisp/bin"                          # lisp
+PATH="${PATH}:${HOME}/development/spikes/git-pile/bin"
 
 # Pretty much took over from: https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
 UNAME_MACHINE="$(/usr/bin/uname -m)"
