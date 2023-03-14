@@ -1,6 +1,6 @@
 #! /usr/bin/env ruby
 
-start = Time.new(2022,3,8,7,54,0,"-05:00")
+$start = Time.new(2023,3,14,9,53,0,"-04:00")
 
 def duration_to_sec(duration)
   seconds, minutes, hours = duration.split(":").reverse
@@ -33,14 +33,13 @@ def humanize(secs)
 end
 
 def loops_printer(loops)
-  start = Time.new(2022,3,8,7,54,0,"-05:00")
   loops.map.with_index(1) do |(start_loop, finish_loop), index|
     if start_loop
       if finish_loop
         took = humanize(duration_to_sec(finish_loop) - duration_to_sec(start_loop))
         puts "|#{index}| #{start_loop} | #{finish_loop} | #{took} |"
       else
-        puts "|#{index}| #{start_loop} |          | ongoing for #{humanize(Time.now - duration_to_sec(start_loop) - start)}|"
+        puts "|#{index}| #{start_loop} |          | ongoing for #{humanize(Time.now - duration_to_sec(start_loop) - $start)}|"
       end
     else
       puts "|#{index}|          |          | not started yet|"
@@ -48,32 +47,30 @@ def loops_printer(loops)
   end
 end
 
-remaining = start + duration_to_sec("60:00:00") - Time.now
-karel_loops = [
-  ["00:00:00", "08:07:50"],
-  ["08:17:17", "19:34:11"],
-  ["20:00:29", "32:21:49"],
-  ["32:40:49", nil],
-  [nil, nil]
-]
+remaining = $start + duration_to_sec("60:00:00") - Time.now
+runners = {
+  "Karel Sabbe" => [
+    ["00:00:00", nil],
+    [nil, nil],
+    [nil, nil],
+    [nil, nil],
+    [nil, nil],
+  ],
+  "Greig Hamilton" => [
+    ["00:00:00", nil],
+    [nil, nil],
+    [nil, nil],
+    [nil, nil],
+    [nil, nil],
+  ]
+}
 
-greig_loops = [
-  ["00:00:00", "08:37:30"],
-  ["08:48:20", "20:26:03"],
-  ["20:48:30", "34:20:39"],
-  ["34:54:23", nil],
-  [nil, nil]
-]
+runners.each do |name, loops|
+  puts name
+  puts "-----------"
+  loops_printer(loops)
+  puts
+end
 
-puts "Karel Sabbe"
-puts "-----------"
-loops_printer(karel_loops)
-puts ""
-
-puts "Greig Hamilton"
-puts "--------------"
-loops_printer(greig_loops)
-puts ""
-
-puts ""
+puts
 puts "Remaining: #{humanize(remaining)}"
