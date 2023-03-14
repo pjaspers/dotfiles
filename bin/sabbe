@@ -1,0 +1,79 @@
+#! /usr/bin/env ruby
+
+start = Time.new(2022,3,8,7,54,0,"-05:00")
+
+def duration_to_sec(duration)
+  seconds, minutes, hours = duration.split(":").reverse
+
+  (hours.to_i * 60 * 60) + (minutes.to_i * 60) + seconds.to_i
+end
+
+def humanize(secs)
+  parts = [[60, [:second, :seconds]],
+           [60, [:minute, :minutes]],
+           [24, [:hour, :hours]],
+           [1000, [:day, :days]]].collect { |count, (singular, plural)|
+    if secs > 0
+      secs, n = secs.divmod(count)
+      count = n.to_i
+      next unless count > 0
+      if count > 1
+        "#{count} #{plural}"
+      else
+        "#{count} #{singular}"
+      end
+    end
+  }.compact.reverse
+  last = parts.pop
+  if parts.count > 0
+    "#{parts.join(", ")} and #{last}"
+  else
+    last
+  end
+end
+
+def loops_printer(loops)
+  start = Time.new(2022,3,8,7,54,0,"-05:00")
+  loops.map.with_index(1) do |(start_loop, finish_loop), index|
+    if start_loop
+      if finish_loop
+        took = humanize(duration_to_sec(finish_loop) - duration_to_sec(start_loop))
+        puts "|#{index}| #{start_loop} | #{finish_loop} | #{took} |"
+      else
+        puts "|#{index}| #{start_loop} |          | ongoing for #{humanize(Time.now - duration_to_sec(start_loop) - start)}|"
+      end
+    else
+      puts "|#{index}|          |          | not started yet|"
+    end
+  end
+end
+
+remaining = start + duration_to_sec("60:00:00") - Time.now
+karel_loops = [
+  ["00:00:00", "08:07:50"],
+  ["08:17:17", "19:34:11"],
+  ["20:00:29", "32:21:49"],
+  ["32:40:49", nil],
+  [nil, nil]
+]
+
+greig_loops = [
+  ["00:00:00", "08:37:30"],
+  ["08:48:20", "20:26:03"],
+  ["20:48:30", "34:20:39"],
+  ["34:54:23", nil],
+  [nil, nil]
+]
+
+puts "Karel Sabbe"
+puts "-----------"
+loops_printer(karel_loops)
+puts ""
+
+puts "Greig Hamilton"
+puts "--------------"
+loops_printer(greig_loops)
+puts ""
+
+puts ""
+puts "Remaining: #{humanize(remaining)}"
