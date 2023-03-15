@@ -105,7 +105,9 @@ class Loop < Struct.new(:number, :start, :stop)
   end
 end
 
-remaining = $start + duration_to_sec("60:00:00") - Time.now
+final_cut_off = $start + duration_to_sec("60:00:00")
+full_run_cut_off = $start + duration_to_sec("36:00:00")
+fun_run_cut_off = $start + duration_to_sec("40:00:00")
 # runners = DATA.read.lines(chomp: true).inject({}) do |r, line|
 #   parts = line.split("|")
 #   r[parts[1]] = Loop[*parts[2..-1]]
@@ -114,7 +116,9 @@ remaining = $start + duration_to_sec("60:00:00") - Time.now
 
 require "yaml"
 all = YAML.load(DATA.read)
-all.each do |name, data|
+all.select {|name, data|
+  !!data[:loop_2_split]
+}.each do |name, data|
   puts "#{name} / #{data[:nickname]}"
   puts "-----------"
   loops_printer([
@@ -128,7 +132,13 @@ all.each do |name, data|
 end
 
 puts
-puts "Remaining: #{humanize(remaining)}"
+
+puts <<STR
+Elapsed time                #{humanize(Time.now - $start)}
+3 loops cutoff for full run #{humanize(full_run_cut_off - Time.now)}
+3 loops cutoff for fun run  #{humanize(fun_run_cut_off - Time.now)}
+Time left to run it all     #{humanize(final_cut_off - Time.now)}
+STR
 
 __END__
 ---
