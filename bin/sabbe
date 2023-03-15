@@ -3,6 +3,7 @@
 $start = Time.new(2023,3,14,9,53,0,"-04:00")
 
 if ARGV[0] == "-v"
+  original_position = DATA.pos
   require "uri"
   require "net/http"
   require "csv"
@@ -33,8 +34,12 @@ if ARGV[0] == "-v"
     end
     r
   end
-  existing = Yaml.load(DATA.read)
-  puts existing.merge(data).to_yaml
+  existing = YAML.load(DATA.read)
+  File.open(__FILE__, "r+") do |f|
+    f.seek(original_position, IO::SEEK_SET)
+    f.truncate(original_position)
+    f.write existing.merge(data).to_yaml
+  end
   exit
 end
 
