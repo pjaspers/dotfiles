@@ -2,6 +2,42 @@
 
 $start = Time.new(2023,3,14,9,53,0,"-04:00")
 
+if ARGV[0] == "-v"
+  require "uri"
+  require "net/http"
+  require "csv"
+  require "yaml"
+  uri = URI.parse("https://docs.google.com/spreadsheets/d/e/2PACX-1vS7bFn8RH5Na4vVxNijCsFCiHeYqRksDi5D9ddC9Fz4yK7nOQhEg8HwG78lz-PFVB2EkFn4QlJKEXMV/pub?output=csv&gid=663038002")
+  response = Net::HTTP.get_response(uri)
+  response = Net::HTTP.get_response(URI.parse(response['location'])) if Net::HTTPRedirection === response
+  csv = CSV.parse(response.body, headers: true)
+  #<CSV::Row "Position":"1" "Name":"John Kelly" "Nationality":"Tennessee, USA" "Gender":"M" "Attempts":"6" "Loop 1 Split":"08:17:57" "Loop 2 Split":"20:07:02" "Loop 3 Split":nil "Loop 4 Split":nil "Final Time":nil "Notes":nil "Description":"The Other Guy">
+  data = csv.inject({}) do |r, row|
+    if row["Position"]
+      r[row["Name"]] = {
+        nationality: row["Nationality"],
+        gender: row["Gender"],
+        attempts: row["Attempts"],
+        loop_1_split: row["Loop 1 Split"],
+        loop_2_start: nil,
+        loop_2_split: row["Loop 2 Split"],
+        loop_3_start: nil,
+        loop_3_split: row["Loop 3 Split"],
+        loop_4_start: nil,
+        loop_4_split: row["Loop 3 Split"],
+        final_start: nil,
+        final_time: row["Final Time"],
+        notes: row["Notes"],
+        nickname: row["Description"]
+      }
+    end
+    r
+  end
+  existing = Yaml.load(DATA.read)
+  puts existing.merge(data).to_yaml
+  exit
+end
+
 def duration_to_sec(duration)
   seconds, minutes, hours = duration.split(":").reverse
 
@@ -33,44 +69,631 @@ def humanize(secs)
 end
 
 def loops_printer(loops)
-  loops.map.with_index(1) do |(start_loop, finish_loop), index|
-    if start_loop
-      if finish_loop
-        took = humanize(duration_to_sec(finish_loop) - duration_to_sec(start_loop))
-        puts "|#{index}| #{start_loop} | #{finish_loop} | #{took} |"
+  loops.each do |loop|
+    puts loop.to_s
+  end
+end
+
+class Loop < Struct.new(:number, :start, :stop)
+  BARKLEY_START = $start
+
+  def to_s(at = Time.now)
+    if start
+      if stop
+        took = humanize(duration_to_sec(stop) - duration_to_sec(start))
+        "|#{number}| #{start} | #{stop} | #{took} |"
       else
-        puts "|#{index}| #{start_loop} |          | ongoing for #{humanize(Time.now - duration_to_sec(start_loop) - $start)}|"
+        "|#{number}| #{start} |          | ongoing for #{humanize(at - duration_to_sec(start) - BARKLEY_START)}|"
       end
     else
-      puts "|#{index}|          |          | not started yet|"
+      "|#{number}|          |          | not started yet|"
     end
+  end
+
+  def fun_run_max
+    "13:20:00"
+  end
+
+
+  def max
+    "12:00:00"
   end
 end
 
 remaining = $start + duration_to_sec("60:00:00") - Time.now
-runners = {
-  "Karel Sabbe" => [
-    ["00:00:00", nil],
-    [nil, nil],
-    [nil, nil],
-    [nil, nil],
-    [nil, nil],
-  ],
-  "Greig Hamilton" => [
-    ["00:00:00", nil],
-    [nil, nil],
-    [nil, nil],
-    [nil, nil],
-    [nil, nil],
-  ]
-}
+# runners = DATA.read.lines(chomp: true).inject({}) do |r, line|
+#   parts = line.split("|")
+#   r[parts[1]] = Loop[*parts[2..-1]]
+#   r
+# end
 
-runners.each do |name, loops|
-  puts name
+require "yaml"
+all = YAML.load(DATA.read)
+all.each do |name, data|
+  puts "#{name} / #{data[:nickname]}"
   puts "-----------"
-  loops_printer(loops)
+  loops_printer([
+                  Loop[1, "00:00:00", data[:loop_1_split]],
+                  Loop[2, data[:loop_2_start] || data[:loop_1_split], data[:loop_2_split]],
+                  Loop[3, data[:loop_3_start] || data[:loop_2_split], data[:loop_3_split]],
+                  Loop[4, data[:loop_4_start] || data[:loop_3_split], data[:loop_4_split]],
+                  Loop[5, data[:final_start] || data[:loop_4_split], data[:final_time]],
+                ])
   puts
 end
 
 puts
 puts "Remaining: #{humanize(remaining)}"
+
+__END__
+---
+John Kelly:
+  :nationality: Tennessee, USA
+  :gender: M
+  :attempts: '6'
+  :loop_1_split: '08:17:57'
+  :loop_2_start:
+  :loop_2_split: '20:07:02'
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname: The Other Guy
+Albert Herrero Casas:
+  :nationality: Spain
+  :gender: M
+  :attempts: '2'
+  :loop_1_split: '08:17:56'
+  :loop_2_start:
+  :loop_2_split: '20:07:03'
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname: Guy with Glasses
+Damian Hall:
+  :nationality: England, UK
+  :gender: M
+  :attempts: '1'
+  :loop_1_split: '08:17:55'
+  :loop_2_start:
+  :loop_2_split: '20:07:04'
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname: Guy with Mohawk
+Christophe Nonorgue:
+  :nationality: Switzerland
+  :gender: M
+  :attempts: '1'
+  :loop_1_split: '08:17:54'
+  :loop_2_start: '08:20:00'
+  :loop_2_split: '20:10:06'
+  :loop_3_start: '21:11:22'
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname: Tall Guy with Beard
+Jared Campbell:
+  :nationality: Utah, USA
+  :gender: M
+  :attempts: '7'
+  :loop_1_split: '08:22:14'
+  :loop_2_start:
+  :loop_2_split: '20:48:20'
+  :loop_3_start: '21:11:22'
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname: Nondescript Guy
+Karel Sabbe:
+  :nationality: Belgium
+  :gender: M
+  :attempts: '3'
+  :loop_1_split: '08:22:15'
+  :loop_2_start:
+  :loop_2_split: '20:48:21'
+  :loop_3_start: '21:11:22'
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname: Another Bearded Guy
+Joe McConaughy:
+  :nationality: Washington, USA
+  :gender: M
+  :attempts: '1'
+  :loop_1_split: '08:48:00'
+  :loop_2_start:
+  :loop_2_split: '20:48:22'
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname:
+!binary "QXVyw6lsaWVuIFNhbmNoZXo=":
+  :nationality: France
+  :gender: M
+  :attempts: '1'
+  :loop_1_split: '08:48:00'
+  :loop_2_start:
+  :loop_2_split: '21:13:06'
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname: Another Bearded Guy
+Jasmin Paris:
+  :nationality: England, UK
+  :gender: F
+  :attempts: '2'
+  :loop_1_split: '08:36:57'
+  :loop_2_start:
+  :loop_2_split: '21:13:07'
+  :loop_3_start: '21:27:39'
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname: Small European Woman
+!binary "UGF2ZWwgUGFsb25jw70=":
+  :nationality: Czechia
+  :gender: M
+  :attempts: '3'
+  :loop_1_split: '08:33:11'
+  :loop_2_start:
+  :loop_2_split: '21:20:30'
+  :loop_3_start: '21:45:36'
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname: Big Smiling Guy
+Guillaume Calmettes:
+  :nationality: France
+  :gender: M
+  :attempts: '4'
+  :loop_1_split: '08:48:00'
+  :loop_2_start:
+  :loop_2_split: '22:46:32'
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname: Guy with Big Grin
+Tomokazu Ihara:
+  :nationality: Japan
+  :gender: M
+  :attempts: '4'
+  :loop_1_split: '09:12:23'
+  :loop_2_start:
+  :loop_2_split: '22:46:38'
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname: Japanese Laz
+Aaron Bradner:
+  :nationality: Virginia, USA
+  :gender: M
+  :attempts: '2'
+  :loop_1_split: '09:00:00'
+  :loop_2_start:
+  :loop_2_split: '23:53:03'
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname:
+Nickademus de la Rosa:
+  :nationality: Arizona, USA
+  :gender: M
+  :attempts: '4'
+  :loop_1_split: '08:48:00'
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname: Tan Guy
+! '':
+  :nationality:
+  :gender:
+  :attempts:
+  :loop_1_split:
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname:
+Thomas van Woensel:
+  :nationality: Belgium
+  :gender: M
+  :attempts: '1'
+  :loop_1_split: '09:59:11'
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname: Foreign Guy
+Harvey Lewis:
+  :nationality: Ohio, USA
+  :gender: M
+  :attempts: '2'
+  :loop_1_split: '09:59:12'
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname: Talkative Guy
+Piotr Chadovich:
+  :nationality: Washington, USA
+  :gender: M
+  :attempts: '1'
+  :loop_1_split: '09:59:13'
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname: Very Polite Guy
+Dearric Winchester:
+  :nationality: Oregon, USA
+  :gender: M
+  :attempts: '1'
+  :loop_1_split: '10:29:39'
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname: Guy with Purple Beard
+Johan Steene:
+  :nationality: Sweden
+  :gender: M
+  :attempts: '5'
+  :loop_1_split: '10:46:40'
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname: Legolas
+Stephen Redfern:
+  :nationality: Australia
+  :gender: M
+  :attempts: '1'
+  :loop_1_split: "<11:00:00"
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname:
+!binary "UsOpbXkgSmVnYXJk":
+  :nationality: France
+  :gender: M
+  :attempts: '6'
+  :loop_1_split: "<11:00:00"
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname:
+Dale Holdaway:
+  :nationality: Michigan, USA
+  :gender: M
+  :attempts: '8'
+  :loop_1_split: "<11:00:00"
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname:
+Katie Wright:
+  :nationality: England, UK
+  :gender: F
+  :attempts: '2'
+  :loop_1_split: '11:20:00'
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname:
+Andrea Larson:
+  :nationality: Wisconsin, USA
+  :gender: F
+  :attempts: '2'
+  :loop_1_split: "<11:35:00"
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname:
+Nicky Spinks:
+  :nationality: England, UK
+  :gender: F
+  :attempts: '2'
+  :loop_1_split: '11:35:00'
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes: Human Sacrifice
+  :nickname: Corpse Sprang to Life
+Tom Hollins:
+  :nationality: England, UK
+  :gender: M
+  :attempts: '1'
+  :loop_1_split: '11:35:00'
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname:
+Eoin Keith:
+  :nationality: Ireland
+  :gender: M
+  :attempts: '2'
+  :loop_1_split: '11:35:00'
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname:
+Billy Reed:
+  :nationality: Northern Ireland, UK
+  :gender: M
+  :attempts: '2'
+  :loop_1_split: '11:35:00'
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname:
+E B:
+  :nationality:
+  :gender: F
+  :attempts: '1'
+  :loop_1_split:
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname:
+David Limousin:
+  :nationality: France
+  :gender: M
+  :attempts: '2'
+  :loop_1_split:
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname:
+Melissa Robertson:
+  :nationality: Australia
+  :gender: F
+  :attempts: '1'
+  :loop_1_split:
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname:
+Dawn Greenwalt:
+  :nationality: Arizona, USA
+  :gender: F
+  :attempts: '1'
+  :loop_1_split:
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname:
+Ed Furtaw:
+  :nationality: Colorado, USA
+  :gender: M
+  :attempts: '22'
+  :loop_1_split:
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname:
+Andrea Kooiman:
+  :nationality: California, USA
+  :gender: F
+  :attempts: '1'
+  :loop_1_split:
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname:
+Ben Yancey:
+  :nationality: Tennessee, USA
+  :gender: M
+  :attempts: '2'
+  :loop_1_split:
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname:
+Jon Eisen:
+  :nationality: Colorado, USA
+  :gender: M
+  :attempts: '1'
+  :loop_1_split:
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes:
+  :nickname:
+March 14th 2023:
+  :nationality: 9:54am
+  :gender:
+  :attempts: Italian and Norwegian flags also hung up, not accounted for so far
+  :loop_1_split:
+  :loop_2_start:
+  :loop_2_split:
+  :loop_3_start:
+  :loop_3_split:
+  :loop_4_start:
+  :loop_4_split:
+  :final_start:
+  :final_time:
+  :notes: 'TIME ELAPSED:'
+  :nickname: '24:06:30'
