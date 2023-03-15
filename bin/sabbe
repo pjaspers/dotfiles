@@ -38,7 +38,7 @@ if ARGV[0] == "-v"
   File.open(__FILE__, "r+") do |f|
     f.seek(original_position, IO::SEEK_SET)
     f.truncate(original_position)
-    f.write existing.merge(data).to_yaml
+    f.write data.merge(existing).to_yaml
   end
   exit
 end
