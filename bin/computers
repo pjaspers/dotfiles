@@ -5,7 +5,7 @@ require "sqlite3"
 require "securerandom"
 require "digest/sha1"
 
-LAST_RUN_AT = "2020-06-01"
+LAST_RUN_AT = "2023-06-01"
 $db = db = SQLite3::Database.new(File.expand_path("~/browser/history.db"))
 $db.define_function("uuid") { SecureRandom.uuid }
 $db.define_function("sha1") {|s| Digest::SHA1.hexdigest(s.to_s) }
