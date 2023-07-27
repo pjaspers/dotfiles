@@ -1,200 +1,141 @@
-#!/usr/bin/env -S ruby --disable-gems
-
+#!/usr/bin/env -S ruby
 require "tempfile"
 require "pathname"
+require "sqlite3"
+require "securerandom"
+require "digest/sha1"
 
-LAST_RUN_AT = "2023-06-01"
-$db_path = "/Users/pjaspers/browser/history.db"
+LAST_RUN_AT = "2020-06-01"
+$db = db = SQLite3::Database.new(File.expand_path("~/browser/history.db"))
+$db.define_function("uuid") { SecureRandom.uuid }
+$db.define_function("sha1") {|s| Digest::SHA1.hexdigest(s.to_s) }
 
-def run_sql(sql, db)
-  Tempfile.open("some-sql") do |sql_file|
-    sql_file.write(sql)
-    sql_file.rewind
-
-    `cat #{sql_file.path} | /usr/bin/sqlite3 #{db}`
-  end
-end
-
-run_sql(<<~SQL, $db_path)
+$db.execute(<<~SQL)
   CREATE TABLE if not exists history (
     id varchar(500) PRIMARY KEY,
     signature TEXT NOT NULL UNIQUE,
-    url TEXT NOT NULL UNIQUE,
+    url TEXT NOT NULL,
     visited_at TEXT NOT NULL,
     browser TEXT NOT NULL,
     title TEXT
   );
 
-  CREATE INDEX if not exists idx_title ON "history"(title);
-  CREATE INDEX if not exists idx_url ON "history"(url);
-  CREATE INDEX if not exists visited_at ON history(title);
+  CREATE INDEX if not exists idx_title ON history(title);
+  CREATE INDEX if not exists idx_url ON history(url);
+  CREATE INDEX if not exists idx_visited_at ON history(visited_at);
+  CREATE INDEX if not exists idx_signature ON history(signature);
 SQL
 
-before = `/usr/bin/sqlite3 #{$db_path} "select browser, count(*) from history group by browser";`.strip
-before = before.split("\n").inject({}) {|r, s| k, v = s.split("|"); r[k] = v.to_i; r}
+before = $db.execute("select browser, count(*) from history group by browser").to_h
 
-config = {firefox: {}, arc: {}, chrome: {}, safari: {}}
+class Browser
+  attr_accessor :name, :sql, :db_paths
+  def initialize(name:, sql:, paths:)
+    @name = name
+    @sql = sql
+    @db_paths = paths
+  end
+end
+
+safari = Browser.new(name: "safari", sql: <<~SQL, paths: [File.expand_path("~/Library/Safari/History.db")])
+      SELECT
+        datetime(hv.visit_time + 978307200, 'unixepoch', 'localtime'),
+        hi.url,
+        hv.title
+      FROM
+        history_visits hv,
+        history_items hi
+      WHERE
+        hv.history_item = hi.id
+     SQL
+
 path = Pathname.new(File.expand_path("~/Library/Application Support/Firefox/Profiles/"))
-config[:firefox][:dbs] = path.glob("*").select {|f| f.directory?}.flat_map do |path|
+paths = path.glob("*").select {|f| f.directory?}.flat_map do |path|
   path.glob("*.sqlite").select{|f| f.basename.to_s == "places.sqlite"}
 end.map(&:to_s)
+firefox = Browser.new(name: "firefox", sql: <<~SQL, paths: paths)
+  SELECT
+    datetime(moz_historyvisits.visit_date/1000000,'unixepoch'),
+    moz_places.url,
+    moz_places.title
+  FROM
+    moz_places,
+    moz_historyvisits
+  WHERE
+    moz_places.id = moz_historyvisits.place_id
+  SQL
 
 path = Pathname.new(File.expand_path("~/Library/Application Support/Arc/User Data/"))
-config[:arc][:dbs] = path.glob("**/History").map(&:to_s)
+arc = Browser.new(name: "arc", sql: <<~SQL, paths: path.glob("**/History").map(&:to_s))
+  SELECT
+    datetime(last_visit_time/1000000-11644473600, "unixepoch"),
+    url,
+    title
+  FROM
+    urls
+  SQL
 
 path = Pathname.new(File.expand_path("~/Library/Application Support/Google/Chrome/"))
-config[:chrome][:dbs] = path.glob("**/History").map(&:to_s)
+chrome = Browser.new(name: "chrome", sql: <<~SQL, paths: path.glob("**/History").map(&:to_s))
+  SELECT
+    datetime(last_visit_time/1000000-11644473600, "unixepoch"),
+    url,
+    title
+  FROM
+    urls
+  SQL
 
-config[:safari][:dbs] = [File.expand_path("~/Library/Safari/History.db")]
-config
-
-sqls = {
-  firefox: <<~SQL,
-SELECT
-  datetime(moz_historyvisits.visit_date/1000000,'unixepoch') as visited_at,
-  moz_places.url as url,
-  moz_places.title as title,
-  'firefox' as browser
-FROM
-  moz_places,
-  moz_historyvisits
-WHERE
-  moz_places.id = moz_historyvisits.place_id
-AND
-  datetime(moz_historyvisits.visit_date/1000000,'unixepoch') > '%{datetime}';
-SQL
-  safari: <<~SQL,
-SELECT
-  datetime(hv.visit_time + 978307200, 'unixepoch', 'localtime') as visited_at,
-  hi.url as url,
-  hv.title as title,
-  'safari' as browser
-FROM
-  history_visits hv,
-  history_items hi
-WHERE
-  hv.history_item = hi.id
-AND
-  datetime(hv.visit_time + 978307200, 'unixepoch', 'localtime') > '%{datetime}';
-SQL
-  chrome: <<~SQL,
-SELECT
-  datetime(last_visit_time/1000000-11644473600, "unixepoch") as visited_at,
-  url as url,
-  title as title,
-  'chrome' as browser
-FROM
-  urls
-WHERE
-  datetime(last_visit_time/1000000-11644473600, "unixepoch") > '%{datetime}';
-SQL
-  arc: <<~SQL
-SELECT
-  datetime(last_visit_time/1000000-11644473600, "unixepoch") as visited_at,
-  url as url,
-  title as title,
-  'arc' as browser
-FROM
-  urls
-WHERE
-  datetime(last_visit_time/1000000-11644473600, "unixepoch") > '%{datetime}';
-SQL
-}
 puts "Exporting history after #{LAST_RUN_AT} to csv's..."
-sqls.each do |browser, sql|
-  config[browser][:dbs].each.with_index(1) do |db_path, index|
-    csv_path = "/Users/pjaspers/browser/#{browser}-#{index}.csv"
+[safari, firefox, chrome, arc].each do |browser|
+  puts "Doing #{browser.name}"
+  browser.db_paths.each.with_index(1) do |db_path, index|
     raise "No such thing #{db_path}" unless File.exist?(db_path)
-
-    Tempfile.open("#{browser}-db-#{index}") do |copy_of_db|
-      # Well, that's one way to copy a sqlite to a temp file
-      copy_of_db.write File.open(db_path).read
-
-      Tempfile.open("#{browser}-sql") do |sql_file|
-        sql_file.write <<~SQL
-          .mode csv
-          .output #{csv_path}
-
-          #{sql % {datetime: LAST_RUN_AT}}
+    puts "  => #{File.basename(db_path)}"
+    sql = <<~SQL
+      with browser_data(visited_at, url, title) as (
+        #{browser.sql}
+      )
+      select
+        visited_at,
+        url,
+        title,
+        "#{browser.name}" as browser,
+        sha1(visited_at || url) as signature,
+        uuid() as id
+      from
+        browser_data
+      where
+        visited_at > :last_run_at
+    SQL
+    begin
+      $db.execute("attach database :db_path as attached", db_path: db_path)
+    rescue SQLite3::BusyException
+      puts "    it was locked, so working against a copy"
+      FileUtils.cp(db_path, "hi-there.db")
+      $db.execute("attach database :db_path as attached", db_path: "hi-there.db")
+    end
+    $db.transaction do
+      insert = $db.prepare(<<~SQL)
+        insert or ignore into history(visited_at, url, title, browser, signature, id)
+               values ( :visited_at, :url, :title, :browser, :signature, :id )
         SQL
-        sql_file.rewind
-
-        cmd = "cat #{sql_file.path} | /usr/bin/sqlite3 #{copy_of_db.path}"
-        `#{cmd}`
+      $db.execute(sql, last_run_at: LAST_RUN_AT) do |visited_at, url, title, browser_name, signature, id|
+        insert.execute(
+          visited_at: visited_at,
+          url: url,
+          title: title,
+          browser: browser_name,
+          signature: signature,
+          id: id
+        )
       end
     end
+    $db.execute("detach database attached")
+    File.unlink("hi-there.db") if File.exist?("hi-there.db")
   end
 end
 
-
-require "csv"
-require "time"
-require 'digest/sha1'
-require "securerandom"
-CHARACTER_FILTER = /[\x00-\x1F\/\\:\*\?\"<>\|]/u
-UNICODE_WHITESPACE = /[[:space:]]+/u
-
-puts "Combining into: ~/browser/combined.csv"
-Dir.chdir(File.expand_path("~/browser")) do
-  files = sqls.flat_map { |browser, _sql| Dir.glob("#{browser}-*").to_a }
-  `cat #{files.join(" ")} > combined.csv`
-end
-
-Tempfile.open("insert-sql") do |sql_file|
-  puts "  Generating inserts"
-  sql_file.puts "BEGIN TRANSACTION;"
-  CSV.foreach(File.expand_path("~/browser/combined.csv")) do |date,url,title, browser|
-    time = Time.parse(date)
-    next unless time > Time.parse(LAST_RUN_AT)
-
-    sha = Digest::SHA1.hexdigest(date + url)
-    id = SecureRandom.uuid
-    title = (title || "").strip.gsub(UNICODE_WHITESPACE,' ').gsub(CHARACTER_FILTER,'').gsub(UNICODE_WHITESPACE,' ').gsub("'", "").gsub('"', "")
-
-    sql = %Q[INSERT OR IGNORE INTO history (id,signature,url, visited_at, title, browser) VALUES ("#{id}", "#{sha}", "#{url.gsub('"', "")}", "#{date}", "#{title}", "#{browser}");]
-    sql_file.puts sql
-  end
-  sql_file.puts "COMMIT;"
-  sql_file.rewind
-
-  puts "  Persisting to #{$db_path}"
-  `cat #{sql_file.path} | /usr/bin/sqlite3 #{$db_path}`
-end
-
-after = `/usr/bin/sqlite3 #{$db_path} "select browser, count(*) from history group by browser";`.strip
-after = after.split("\n").inject({}) {|r, s| k, v = s.split("|"); r[k] = v.to_i; r}
-
-puts
-puts
+after = $db.execute("select browser, count(*) from history group by browser").to_h
 after.each do |browser, count|
   puts "#{browser} now has #{count} (+#{count - (before[browser] || 0)})"
 end
-
-Dir.glob(File.expand_path("~/browser/*.csv")).map{|s| Pathname.new(s).unlink }
-
-# 2023-07-01
-#
-# CREATE TABLE history (
-#   id varchar(500) PRIMARY KEY,
-#   signature TEXT NOT NULL UNIQUE,
-#   url TEXT NOT NULL UNIQUE,
-#   visited_at TEXT NOT NULL,
-#   browser TEXT NOT NULL,
-#   title TEXT
-# );
-#
-# CREATE INDEX idx_title ON "history"(title)
-# CREATE INDEX idx_url ON "history"(url)
-# CREATE INDEX visited_at ON history(title)
-#
-#     /usr/bin/sqlite3 -list -separator ' → ' $db <<EOF
-# select
-#   count(*) as count, strftime('%m %Y',datetime(history_visits.visit_time, 'unixepoch', '31 years')) as date
-# from
-#   history
-# group by
-#   strftime('%m%Y', datetime(visited_at, 'unixepoch', '31 years'))
-# order by
-#   count desc
-# limit 1
-# EOF
