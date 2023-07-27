@@ -1,11 +1,19 @@
 .TH PIEK 1
 .SH NAME
-piek \- control tv through harmony through hass
+piek \- a cli remote for the tv
 .SH SYNOPSIS
 .B piek
 .R [\-d DEVICE COMMAND]
 .SH DESCRIPTION
-Control the TV, or Apple TV, or Telenet
+.PP
+Talk to the tv through the Harmony Hub using the API provided by Home Assistant.
+.PP
+I acknowledge the Rube Goldbergian aspect of this setup, but in return I can control my tv from my CLI, it's like a glimpse back to when software was not actively evil.
+.PP
+You can either talk directly to a device *piek \-d apple pause*, or switch to a specific harmony activity *piek \-a nintendo*
+.PP
+Needs the harmony.conf file from ssh://hass/config/harmony.conf when compiling
+.PP
 .SH OPTIONS
 .TP
 .BR \-h ", "\-\-help
@@ -21,7 +29,7 @@ Enable the Lisp debugger.
 Disable the Lisp debugger (the default).
 .TP
 .BR \-a " " \fIACTIVITY\fR ", "\-\-activity=\fIACTIVITY\fR
-send activity to harmony
+switch to activity
 .SH EXAMPLES
 Volume Down TV':
 .PP

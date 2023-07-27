@@ -95,6 +95,7 @@
   (devices-from-conf *harmony-conf*)
   )
 
+
 (defmacro with-key(kind key value)
   (let* ((plural (cond((equal kind "device") "devices") ((equal kind "activity") "activities")))
          (lookup (intern (string-upcase (concatenate 'string (format nil "~A" plural) "-from-conf"))))
@@ -226,7 +227,7 @@
 
 (defparameter *activity*
   (adopt:make-option 'activity
-    :help (format nil "send activity to harmony")
+    :help (format nil "switch to activity")
     :long "activity"
     :short #\a
     :parameter "ACTIVITY"
@@ -236,8 +237,16 @@
   (adopt:make-interface
     :name "piek"
     :usage "[-d DEVICE COMMAND]"
-    :summary "control tv through harmony through hass"
-    :help "Control the TV, or Apple TV, or Telenet"
+    :summary "a cli remote for the tv"
+    :help "
+Talk to the tv through the Harmony Hub using the API provided by Home Assistant.
+
+I acknowledge the Rube Goldbergian aspect of this setup, but in return I can control my tv from my CLI, it's like a glimpse back to when software was not actively evil.
+
+You can either talk directly to a device *piek -d apple pause*, or switch to a specific harmony activity *piek -a nintendo*
+
+Needs the harmony.conf file from ssh://hass/config/harmony.conf when compiling
+"
     :contents (list *help* *device* *option-debug* *option-no-debug* *activity*)
     :examples '(("Volume Down TV':" . "piek -d lg volumedown")
                 ("Pause Apple TV:" . "piek -d apple pause")
