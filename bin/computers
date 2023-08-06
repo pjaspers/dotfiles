@@ -1,33 +1,12 @@
 #!/usr/bin/env -S ruby
 require "tempfile"
+require "time"
 require "pathname"
 require "sqlite3"
 require "securerandom"
 require "digest/sha1"
 
-LAST_RUN_AT = "2023-06-01"
-$db = db = SQLite3::Database.new(File.expand_path("~/browser/history.db"))
-$db.define_function("uuid") { SecureRandom.uuid }
-$db.define_function("sha1") {|s| Digest::SHA1.hexdigest(s.to_s) }
-
-$db.execute(<<~SQL)
-  CREATE TABLE if not exists history (
-    id varchar(500) PRIMARY KEY,
-    signature TEXT NOT NULL UNIQUE,
-    url TEXT NOT NULL,
-    visited_at TEXT NOT NULL,
-    browser TEXT NOT NULL,
-    title TEXT
-  );
-
-  CREATE INDEX if not exists idx_title ON history(title);
-  CREATE INDEX if not exists idx_url ON history(url);
-  CREATE INDEX if not exists idx_visited_at ON history(visited_at);
-  CREATE INDEX if not exists idx_signature ON history(signature);
-SQL
-
-before = $db.execute("select browser, count(*) from history group by browser").to_h
-
+browsers = {}
 class Browser
   attr_accessor :name, :sql, :db_paths
   def initialize(name:, sql:, paths:)
@@ -35,11 +14,66 @@ class Browser
     @sql = sql
     @db_paths = paths
   end
-end
 
-safari = Browser.new(name: "safari", sql: <<~SQL, paths: [File.expand_path("~/Library/Safari/History.db")])
+  def sorted_paths
+    @db_paths.sort_by{|path| File.mtime(path)}.reverse
+  end
+
+  def single_line_sql
+    @sql.gsub!(/[[:space:]]+/, " ").strip
+  end
+
+  def debug
+    sqls = sorted_paths.map do |path|
+      <<~STR
+      #{GREEN.(File.mtime(path))}
+
+            sqlite3 "#{path}"
+      STR
+    end.join("\n")
+
+    <<~DEBUG
+    SQL
+
+    with d(visited_at, url, title) as (#{single_line_sql}) select * from d;
+
+    CONNECT
+
+    #{sqls}
+    DEBUG
+  end
+
+  def with_sql(sql)
+    <<~SQL
+    with d(visited_at, url, title) as (#{single_line_sql}) #{sql}
+    SQL
+  end
+
+  def execute_on_db(path, sql)
+    SQLite3::Database.new(path).execute(sql)
+  rescue SQLite3::BusyException
+    temp_file = Tempfile.new('foo')
+    FileUtils.cp(path, temp_file.path)
+    r = SQLite3::Database.new(temp_file.path).execute(sql)
+    File.unlink(temp_file.path)
+    r
+  end
+
+  def last_10
+    sorted_paths.inject({}) do |r, path|
+      name = File.basename(path)
+      modified = File.mtime(path)
+      r[path] = {
+        name: "#{name} (#{modified.strftime("%d/%m %H:%M:%S")})",
+        rows: execute_on_db(path, with_sql("select visited_at, url, title from d order by visited_at desc limit 10"))
+      }
+      r
+    end
+  end
+end
+browsers[:safari] = Browser.new(name: "safari", sql: <<~SQL, paths: [File.expand_path("~/Library/Safari/History.db")])
       SELECT
-        datetime(hv.visit_time + 978307200, 'unixepoch', 'localtime'),
+        datetime(hv.visit_time + 978307200, 'unixepoch'),
         hi.url,
         hv.title
       FROM
@@ -53,7 +87,8 @@ path = Pathname.new(File.expand_path("~/Library/Application Support/Firefox/Prof
 paths = path.glob("*").select {|f| f.directory?}.flat_map do |path|
   path.glob("*.sqlite").select{|f| f.basename.to_s == "places.sqlite"}
 end.map(&:to_s)
-firefox = Browser.new(name: "firefox", sql: <<~SQL, paths: paths)
+
+browsers[:firefox] = Browser.new(name: "firefox", sql: <<~SQL, paths: paths)
   SELECT
     datetime(moz_historyvisits.visit_date/1000000,'unixepoch'),
     moz_places.url,
@@ -66,7 +101,7 @@ firefox = Browser.new(name: "firefox", sql: <<~SQL, paths: paths)
   SQL
 
 path = Pathname.new(File.expand_path("~/Library/Application Support/Arc/User Data/"))
-arc = Browser.new(name: "arc", sql: <<~SQL, paths: path.glob("**/History").map(&:to_s))
+browsers[:arc] = Browser.new(name: "arc", sql: <<~SQL, paths: path.glob("**/History").map(&:to_s))
   SELECT
     datetime(last_visit_time/1000000-11644473600, "unixepoch"),
     url,
@@ -76,17 +111,99 @@ arc = Browser.new(name: "arc", sql: <<~SQL, paths: path.glob("**/History").map(&
   SQL
 
 path = Pathname.new(File.expand_path("~/Library/Application Support/Google/Chrome/"))
-chrome = Browser.new(name: "chrome", sql: <<~SQL, paths: path.glob("**/History").map(&:to_s))
+browsers[:chrome] = Browser.new(name: "chrome", sql: <<~SQL, paths: path.glob("**/History").map(&:to_s))
   SELECT
-    datetime(last_visit_time/1000000-11644473600, "unixepoch"),
-    url,
+    datetime(visit_time/1000000-11644473600, "unixepoch"),
+    urls.url,
     title
   FROM
-    urls
+    urls,
+    visits
+  where
+    urls.id = visits.url
   SQL
 
+require 'optparse'
+params = {}
+commands = []
+RED = ->(s) { "\e[38;5;01m%s\e[0m" % s }
+GREEN = ->(s) { "\e[38;5;40m%s\e[0m" % s }
+
+parser = OptionParser.new do |opts|
+  opts.banner = "computers - Fetch from browsers and store in sqlite"
+
+  opts.on("-c", "--check BROWSER", "show last 10 entries for that browser")
+  opts.on("-d", "--debug BROWSER", "show paths to sqlites and sqlite3 command to access")
+  opts.on("-n", "--dry-run", "don't run anything, only show what it will do")
+
+  opts.on("-h", "--help", "Prints this help") do
+    puts opts
+    exit
+  end
+end
+parser.parse!(into: params)
+
+$db = db = SQLite3::Database.new(File.expand_path("~/browser/history.db"))
+
+if browser = params[:check]
+  puts "HISTORY"
+  puts
+  format_row = ->(visited_at, url, title) do
+    "#{GREEN.(visited_at)} #{url[0..80]}"
+  end
+  $db.execute("select visited_at, url, title from history where browser = ? order by visited_at desc limit 10", browser) do |v,u,t|
+    puts format_row.(v,u,t)
+  end
+  puts
+
+  browsers[browser.to_sym].last_10.each do |path, data|
+    puts data[:name]
+    puts
+    data[:rows].each do |v,u,t|
+      puts format_row.(v,u,t)
+    end
+    puts
+  end
+
+  exit 1
+end
+
+if browser = params[:debug]
+  puts browsers[browser.to_sym].debug
+  exit 1
+end
+
+# Everything is stored in UTC
+
+$db.define_function("uuid") { SecureRandom.uuid }
+$db.define_function("sha1") {|s| Digest::SHA1.hexdigest(s.to_s) }
+
+$db.execute_batch(<<~SQL)
+  CREATE TABLE if not exists history (
+    id varchar(500) PRIMARY KEY,
+    signature TEXT NOT NULL UNIQUE,
+    url TEXT NOT NULL,
+    visited_at TEXT NOT NULL,
+    browser TEXT NOT NULL,
+    title TEXT
+  );
+
+  CREATE INDEX if not exists idx_title ON history(title);
+  CREATE INDEX if not exists idx_url ON history(url);
+  CREATE INDEX if not exists idx_visited_at ON history(visited_at);
+  CREATE INDEX if not exists idx_signature ON history(signature);
+
+  CREATE TABLE if not exists sync_history (
+    synced_at TEXT NOT NULL
+  )
+SQL
+
+LAST_RUN_AT = $db.get_first_value("select synced_at from sync_history order by synced_at desc") || "2023-06-01"
+before = $db.execute("select browser, count(*) from history group by browser").to_h
+
+
 puts "Exporting history after #{LAST_RUN_AT} to csv's..."
-[safari, firefox, chrome, arc].each do |browser|
+browsers.each do |_name, browser|
   puts "Doing #{browser.name}"
   browser.db_paths.each.with_index(1) do |db_path, index|
     raise "No such thing #{db_path}" unless File.exist?(db_path)
@@ -111,8 +228,10 @@ puts "Exporting history after #{LAST_RUN_AT} to csv's..."
       $db.execute("attach database :db_path as attached", db_path: db_path)
     rescue SQLite3::BusyException
       puts "    it was locked, so working against a copy"
-      FileUtils.cp(db_path, "hi-there.db")
-      $db.execute("attach database :db_path as attached", db_path: "hi-there.db")
+      Dir.glob(db_path + "*").each do |path|
+        FileUtils.cp(db_path, "temp-" + File.basename(db_path))
+      end
+      $db.execute("attach database :db_path as attached", db_path: "temp-" + File.basename(db_path))
     end
     $db.transaction do
       insert = $db.prepare(<<~SQL)
@@ -131,11 +250,73 @@ puts "Exporting history after #{LAST_RUN_AT} to csv's..."
       end
     end
     $db.execute("detach database attached")
-    File.unlink("hi-there.db") if File.exist?("hi-there.db")
+    Dir.glob("temp-").each do |path|
+      File.unlink(path)
+    end
   end
 end
 
+$db.execute("insert into sync_history(synced_at) values (?)", Time.now.utc.strftime("%Y-%m-%d %H:%M:%S"))
 after = $db.execute("select browser, count(*) from history group by browser").to_h
 after.each do |browser, count|
   puts "#{browser} now has #{count} (+#{count - (before[browser] || 0)})"
 end
+
+# moz_historyvisit.from visit
+# moz_places.rev_host
+# 5	TRANSITION_REDIRECT_PERMANENT	The transition was a permanent redirect.
+# 6	TRANSITION_REDIRECT_TEMPORARY	The transition was a temporary redirect.
+
+
+# imit 2;
+#                                    id = 398820
+#                          history_item = 2141
+#                            visit_time = 712228371.370389
+#                                 title =
+#                       load_successful = 1
+#                          http_non_get = 0
+#                           synthesized = 0
+#                       redirect_source = 398819
+#                  redirect_destination =
+#                                origin = 0
+#                            generation = 22158
+#                            attributes = 0
+#                                 score = 100
+#                                    id = 2141
+#                                   url = https://www.vrt.be/vrtnws/nl/
+#                      domain_expansion =
+#                           visit_count = 3992
+#                    daily_visit_counts = d
+#                   weekly_visit_counts = ?
+#                 autocomplete_triggers =
+# should_recompute_derived_visit_counts = 0
+#                     visit_count_score = 57528
+#                           status_code = 0
+
+#                                    id = 398819
+#                          history_item = 2927
+#                            visit_time = 712228371.370177
+#                                 title =
+#                       load_successful = 1
+#                          http_non_get = 0
+#                           synthesized = 0
+#                       redirect_source =
+#                  redirect_destination = 398820
+#                                origin = 0
+#                            generation = 22158
+#                            attributes = 0
+#                                 score = 100
+#                                    id = 2927
+#                                   url = http://www.deredactie.be/
+#                      domain_expansion =
+#                           visit_count = 1963
+#                    daily_visit_counts = d
+#                   weekly_visit_counts = z
+#                 autocomplete_triggers =
+# should_recompute_derived_visit_counts = 0
+#                     visit_count_score = 30021
+#                           status_code = 0
+# sqlite>
+
+#visits
+#visit source
