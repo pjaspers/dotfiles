@@ -141,6 +141,30 @@ function gifme() {
     /usr/bin/sqlite3 $db $query | awk '{split($0,a,"|"); printf "\033[1;31m%-20s\033[0m: %s\n",a[2],a[1]}'
 }
 
+# select count(*) as count, strftime("%Y", created_at) from tweets group by strftime("%Y", created_at) order by count desc;
+# select in_reply_to_user_id, in_reply_to_screen_name, count(*) as cnt from tweets where in_reply_to_user_id <> '' group by in_reply_to_user_id order by cnt desc limit 10;
+# select count(*) as count, strftime("%Y%m%d", created_at) from tweets group by strftime("%j%Y", created_at) order by count desc limit 10;
+function tweets_db() {
+    echo "/usr/bin/sqlite3 ~/Sync/twitter.db"
+}
+function tweet_stats() {
+    sqlite3 ~/Sync/twitter.db 'select count(*) as count, strftime("%Y", created_at) as year from tweets group by strftime("%Y", created_at) order by year desc';
+    sqlite3 ~/Sync/twitter.db 'select in_reply_to_user_id, in_reply_to_screen_name, count(*) as cnt from tweets where in_reply_to_user_id <> "" group by in_reply_to_user_id order by cnt desc limit 10';
+    sqlite3 ~/Sync/twitter.db 'select count(*) as count, strftime("%Y%m%d", created_at) from tweets group by strftime("%j%Y", created_at) order by count desc limit 10';
+
+
+}
+function tweets() {
+    db="${HOME}/Sync/twitter.db"
+    query="select text, created_at, id from tweets where text like '%$1%'";
+    /usr/bin/sqlite3 -column $db $query
+}
+function tweets_fts() {
+    db="${HOME}/Sync/twitter.db"
+    query="select text, created_at, id from tweets_fts where text match '$1'";
+    /usr/bin/sqlite3 -column $db $query
+}
+
 function safari_top() {
     local number=50
     if (( $# > 0 ));then
