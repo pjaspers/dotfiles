@@ -3,15 +3,6 @@ bindkey -e # Emacs bindings
 
 [[ $TERM == "dumb" ]] && unsetopt zle && PS1='$ ' && return
 
-# Load [chruby](https://github.com/postmodern/chruby) and set default ruby
-if [[ -d "${HOMEBREW_PREFIX:?}/share/chruby" ]]
-then
-    source "${HOMEBREW_PREFIX}/share/chruby/chruby.sh"
-    source "${HOMEBREW_PREFIX}/share/chruby/auto.sh"
-else
-    source /usr/local/share/chruby/chruby.sh
-    source /usr/local/share/chruby/auto.sh
-fi
 chruby ruby-2.7
 
 # Initializing autocomplete here, otherwise functions won't be loaded
@@ -19,12 +10,6 @@ chruby ruby-2.7
 autoload -U compinit compdef
 compinit
 fpath=(${HOMEBREW_PREFIX}/share/zsh/site-functions/ $ZSH/functions $ZSH/completions $fpath)
-
-# Use localrc for tokens and ignored stuff
-if [[ -a $ZSH/zsh/localrc ]]
-then
-  source $ZSH/zsh/localrc
-fi
 
 config_files=($ZSH/zsh/*.zsh)
 
