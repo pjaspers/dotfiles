@@ -3,7 +3,7 @@ bindkey -e # Emacs bindings
 
 [[ $TERM == "dumb" ]] && unsetopt zle && PS1='$ ' && return
 
-chruby ruby-2.7
+chruby 3
 
 # Initializing autocomplete here, otherwise functions won't be loaded
 # also load compdef so git-completion doesn't complain about no compdef
@@ -32,7 +32,9 @@ fi
 
 # Try out [atuin](https://github.com/ellie/atuin)
 eval "$(atuin init zsh)"
-export PATH="/opt/homebrew/opt/mysql@5.7/bin:$PATH"
 
 # Towards a nicer kill completion
 zstyle ':completion:*:*:kill:*:processes' command 'ps -xo pid,user,command'
+
+# Try out mise
+eval "$(/Users/pjaspers/.local/bin/mise activate zsh)"
