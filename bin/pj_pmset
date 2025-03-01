@@ -1,0 +1,42 @@
+#! /usr/bin/env ruby
+# coding: utf-8
+#
+# Make sleep not broken again.
+# https://apple.stackexchange.com/questions/250697/stop-process-from-preventing-sleep-on-os-x
+#
+require 'open3'
+
+# Silence control characters from appearing
+require 'io/console'
+# STDIN.echo = false
+
+VERSION="0.0.1"
+VERSION_NAME="Casino Royale"
+# https://en.wikipedia.org/wiki/List_of_James_Bond_films
+
+pmset = "/usr/bin/pmset"
+
+if ARGV[0] == "-v" or ARGV[0] == "--version"
+  puts "#{VERSION} (#{VERSION_NAME})"
+  exit
+end
+
+# gets(nil)
+def extract(string)
+  lines = string.split("\n").inject({}) do |result, line|
+    if line.start_with?(" ")
+      name, value = line.split(" ")
+      if value =~ /\A[-+]?[0-9]*\.?[0-9]+\Z/
+        value = value.to_f
+      end
+      result[name.strip] = value
+    end
+    result
+  end
+  lines
+end
+
+Open3.popen3("#{pmset} -g") do |stdin, stdout, stderr, wait_thr|
+  lines = extract(stdout.read)
+  puts lines
+end
